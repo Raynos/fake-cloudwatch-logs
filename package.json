@@ -25,6 +25,7 @@
     "dtslint": "github:Raynos/dtslint#v0.7.6-pin-typescript-2",
     "nyc": "13.3.0",
     "opn": "1.0.1",
+    "rimraf": "3.0.0",
     "tape": "4.10.2",
     "tape-cluster": "3.2.1",
     "tslint": "5.16.0",
