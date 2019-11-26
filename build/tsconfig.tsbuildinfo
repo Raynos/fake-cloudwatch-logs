@@ -1170,8 +1170,8 @@
         "signature": "439e91d567a2cbf2cd8dd69d7b3f9cfdc8dbfcb3f0d6f31e00f11ed20c5ff90d"
       },
       "/home/raynos/projects/fake-cloudwatch-logs/src/index.ts": {
-        "version": "91e6d6837e0d1473d1b32b8164040a6c16c4d97050e45af776301e97c02212f1",
-        "signature": "f8c4da11680752c6fa01a89b1aa254371d18a79967ad1cdc65a08896ec23c023"
+        "version": "b45ad6120b01cfcdc45ce793e7872275796414aaae497b3a5d928591e253ac3e",
+        "signature": "63093ec1fe3fd1f8d24bc6f251b066f4c81946e81710e6a9275973cc927b2e71"
       },
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/lib/credentials/cognito_identity_credentials.d.ts": {
         "version": "f575f1f4c48f490b4cd4d056e1ffc7d9e20519023ff8e39ae1bc1fe34c253a1c",
@@ -1246,7 +1246,7 @@
         "signature": "be8b91fc12a4ab12a74d93c3a6318db3cfd3ca559fc05ce9eda4131655c89793"
       },
       "/home/raynos/projects/fake-cloudwatch-logs/test/index.ts": {
-        "version": "157c602bc1dd74829ea42656cb22f89461b193923dfb5c02382749e9f2e688c6",
+        "version": "5404e1f7f802319afdba3db61748ed3f84a95d82e01ac9b80f8434b332e09f42",
         "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
       }
     },

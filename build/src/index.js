@@ -213,7 +213,7 @@ class FakeCloudwatchLogs {
             // tslint:disable-next-line: no-dynamic-delete
             delete this.tokens[prevToken];
             if (!tokenInfo) {
-                throw new Error(`invalid prevToken: ${prevToken}`);
+                throw new Error(`invalid nextToken: ${prevToken}`);
             }
             offset = tokenInfo.offset;
         }
@@ -228,8 +228,8 @@ class FakeCloudwatchLogs {
     }
     describeLogGroups(body) {
         const req = JSON.parse(body);
-        // TODO: req.logGroupNamePrefix
         // TODO: default sort
+        // TODO: req.logGroupNamePrefix
         const page = this.paginate(this.rawGroups, req.nextToken, req.limit);
         // tslint:disable-next-line: no-unnecessary-local-variable
         const res = {
@@ -267,7 +267,7 @@ class FakeCloudwatchLogs {
      * So if you have 50 events and you get limit=10 return
      *      {
      *          events = 40-49
-     *          nextForwardToken = null
+     *          nextForwardToken = pointer => 50-59
      *          nextBackwardToken = pointer => 30-39
      *      }
      *
@@ -281,7 +281,6 @@ class FakeCloudwatchLogs {
      */
     getLogEvents(body) {
         const req = JSON.parse(body);
-        // TODO: sort order
         // TODO: req.startTime
         // TODO: req.endTime
         // TODO: req.startFromHead
@@ -290,9 +289,33 @@ class FakeCloudwatchLogs {
         if (!events) {
             return {};
         }
+        let offset = 0;
+        if (req.nextToken) {
+            const tokenInfo = this.tokens[req.nextToken];
+            // tslint:disable-next-line: no-dynamic-delete
+            delete this.tokens[req.nextToken];
+            if (!tokenInfo) {
+                throw new Error(`invalid nextToken: ${req.nextToken}`);
+            }
+            offset = tokenInfo.offset;
+        }
+        const limit = req.limit || 10000;
+        const start = events.length - limit - offset;
+        const end = events.length - offset;
+        const nextForwardToken = `f/${cuuid()}`;
+        this.tokens[nextForwardToken] = {
+            offset: offset + (-limit)
+        };
+        const nextBackwardToken = `b/${cuuid()}`;
+        this.tokens[nextBackwardToken] = {
+            offset: offset + limit
+        };
+        const items = events.slice(start, end);
         // tslint:disable-next-line: no-unnecessary-local-variable
         const res = {
-            events: events.slice(0, req.limit || 50)
+            events: items,
+            nextForwardToken,
+            nextBackwardToken
         };
         return res;
     }
