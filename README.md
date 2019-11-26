@@ -91,6 +91,56 @@ data into memory and then configure your website or application or
 server to point to the FakeCloudwatchLogs on whatever port you
 choose.
 
+Here is an example snippet from the script
+
+```js
+'use strict'
+
+const path = require('path')
+const AWS = require('aws-sdk')
+const FakeCloudWatchLogs =
+  require('../build/src/index.js').FakeCloudwatchLogs
+
+async function main () {
+  const fakeCW = new FakeCloudWatchLogs()
+  // Use production cloudwatch logs aws client to fetch data
+  // and then cache them into a fixtures directory.
+  const cw = new AWS.CloudWatchLogs({
+    region: 'us-east-1'
+  })
+
+  const cachePath = path.join(__dirname, '..', 'fixtures')
+
+  // Cache groups
+  const groups = await cw.describeLogGroups().promise()
+  await fakeCW.cacheGroupsToDisk(cachePath, groups.logGroups)
+
+  // Cache streams
+  const rawGroups = fakeCW.rawGroups
+  for (const g of rawGroups) {
+    let streams
+    let allStreams = []
+    do {
+      streams = await cw.describeLogStreams({
+        logGroupName: g.logGroupName,
+        nextToken: streams && streams.nextToken
+          ? streams.nextToken : undefined
+      }).promise()
+
+      allStreams.push(...streams.logStreams)
+    } while (streams && streams.nextToken)
+
+    await fakeCW.cacheStreamsToDisk(
+      cachePath, g.logGroupName, allStreams
+    )
+  }
+}
+
+main().then(null, (err) => {
+  process.nextTick(() => { throw err })
+})
+```
+
 ## Docs :
 
 ### `const server = new FakeCloudwatchLogs(options)`
