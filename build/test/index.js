@@ -152,6 +152,46 @@ test_harness_1.test('can cache groups to disk', async (harness, t) => {
     t.equal(res1.logGroups[0].logGroupName, `my-log-group-${gCounter - 30}`);
     t.equal(res1.logGroups[9].logGroupName, `my-log-group-${gCounter - 21}`);
 });
+test_harness_1.test('can cache streams to disk', async (harness, t) => {
+    const cw = harness.getCW();
+    const server = harness.getServer();
+    const logStreams = [];
+    for (let i = 0; i < 30; i++) {
+        logStreams.push(makeLogStream());
+    }
+    const cachePath = path.join(os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`);
+    await server.cacheStreamsToDisk(cachePath, 'test-group', logStreams);
+    await server.populateFromCache(cachePath);
+    const res1 = await cw.describeLogStreams({
+        limit: 10,
+        logGroupName: 'test-group'
+    }).promise();
+    t.ok(res1.logStreams);
+    t.ok(res1.nextToken);
+    t.equal(res1.logStreams.length, 10);
+    t.equal(res1.logStreams[0].logStreamName, `my-log-stream-${gCounter - 30}`);
+    t.equal(res1.logStreams[9].logStreamName, `my-log-stream-${gCounter - 21}`);
+});
+test_harness_1.test('can cache events to disk', async (harness, t) => {
+    const cw = harness.getCW();
+    const server = harness.getServer();
+    const logEvents = [];
+    for (let i = 0; i < 30; i++) {
+        logEvents.push(makeLogEvent());
+    }
+    const cachePath = path.join(os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`);
+    await server.cacheEventsToDisk(cachePath, 'test-group', 'test-stream', logEvents);
+    await server.populateFromCache(cachePath);
+    const res2 = await cw.getLogEvents({
+        logGroupName: 'test-group',
+        logStreamName: 'test-stream',
+        limit: 10
+    }).promise();
+    t.ok(res2.events);
+    t.equal(res2.events.length, 10);
+    t.equal(res2.events[0].message, `[INFO]: A log message: ${gCounter - 30}`);
+    t.equal(res2.events[9].message, `[INFO]: A log message: ${gCounter - 21}`);
+});
 function makeLogEvent() {
     return {
         timestamp: Date.now(),
