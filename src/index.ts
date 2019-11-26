@@ -101,6 +101,34 @@ export class FakeCloudwatchLogs {
         );
     }
 
+    async cacheEventsToDisk(
+        filePath: string,
+        groupName: string,
+        streamName: string,
+        events: OutputLogEvent[]
+    ): Promise<void> {
+        this.touchedCache = true;
+        if (!this.knownCaches.includes(filePath)) {
+            this.knownCaches.push(filePath);
+        }
+
+        const streamsDir = path.join(filePath, 'streams');
+        const key = groupName + ':' + streamName;
+
+        await mkdirP(filePath);
+        await mkdirP(path.join(streamsDir));
+        await mkdirP(path.join(streamsDir, key));
+        await writeFileP(
+            path.join(streamsDir, key, 'events.json'),
+            JSON.stringify({
+                type: 'cached-log-event',
+                groupName,
+                streamName,
+                events
+            })
+        );
+    }
+
     async populateFromCache(filePath: string): Promise<void> {
         let groupsStr: string | null = null;
         try {
@@ -144,6 +172,37 @@ export class FakeCloudwatchLogs {
                 this.populateStreams(
                     streamsInfo.groupName,
                     streamsInfo.streams
+                );
+            }
+        }
+
+        let streamDirs: string[] | null = null;
+        try {
+            streamDirs = await readdirP(
+                path.join(filePath, 'streams')
+            );
+        } catch (maybeErr) {
+            const err = <NodeJS.ErrnoException> maybeErr;
+            if (err.code !== 'ENOENT') throw err;
+        }
+
+        if (streamDirs) {
+            for (const dirName of streamDirs) {
+                const eventsStr = await readFileP(path.join(
+                    filePath,
+                    'streams',
+                    dirName,
+                    'events.json'
+                ), 'utf8');
+                const eventsinfo = <{
+                    groupName: string,
+                    streamName: string,
+                    events: OutputLogEvent[]
+                }> JSON.parse(eventsStr);
+                this.populateEvents(
+                    eventsinfo.groupName,
+                    eventsinfo.streamName,
+                    eventsinfo.events
                 );
             }
         }
@@ -360,7 +419,7 @@ export class FakeCloudwatchLogs {
 
         // tslint:disable-next-line: no-unnecessary-local-variable
         const res: GetLogEventsResponse = {
-            events
+            events: events.slice(0, req.limit || 50)
         };
         return res;
     }
