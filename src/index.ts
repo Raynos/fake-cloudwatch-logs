@@ -243,7 +243,7 @@ export class FakeCloudwatchLogs {
             rawEvents = this.rawEvents[key] = [];
         }
         rawEvents.push(...events);
-        rawEvents.sort((a, b) => {
+        rawEvents.sort((a: OutputLogEvent, b: OutputLogEvent) => {
             if (!a.timestamp) return 1;
             if (!b.timestamp) return -1;
             return a.timestamp < b.timestamp ? -1 : 1;
@@ -344,7 +344,7 @@ export class FakeCloudwatchLogs {
             // tslint:disable-next-line: no-dynamic-delete
             delete this.tokens[prevToken];
             if (!tokenInfo) {
-                throw new Error(`invalid prevToken: ${prevToken}`);
+                throw new Error(`invalid nextToken: ${prevToken}`);
             }
             offset = tokenInfo.offset;
         }
@@ -365,8 +365,8 @@ export class FakeCloudwatchLogs {
         body: string
     ): DescribeLogGroupsResponse {
         const req = <DescribeLogGroupsRequest> JSON.parse(body);
-        // TODO: req.logGroupNamePrefix
         // TODO: default sort
+        // TODO: req.logGroupNamePrefix
 
         const page = this.paginate(
             this.rawGroups, req.nextToken, req.limit
@@ -419,7 +419,7 @@ export class FakeCloudwatchLogs {
      * So if you have 50 events and you get limit=10 return
      *      {
      *          events = 40-49
-     *          nextForwardToken = null
+     *          nextForwardToken = pointer => 50-59
      *          nextBackwardToken = pointer => 30-39
      *      }
      *
@@ -435,20 +435,47 @@ export class FakeCloudwatchLogs {
         body: string
     ): GetLogEventsResponse {
         const req = <GetLogEventsRequest> JSON.parse(body);
-        // TODO: sort order
         // TODO: req.startTime
         // TODO: req.endTime
         // TODO: req.startFromHead
 
         const key = req.logGroupName + '~~' + req.logStreamName;
-        const events = this.rawEvents[key]
+        const events = this.rawEvents[key];
         if (!events) {
             return {};
         }
 
+        let offset = 0;
+        if (req.nextToken) {
+            const tokenInfo = this.tokens[req.nextToken];
+            // tslint:disable-next-line: no-dynamic-delete
+            delete this.tokens[req.nextToken];
+            if (!tokenInfo) {
+                throw new Error(`invalid nextToken: ${req.nextToken}`);
+            }
+            offset = tokenInfo.offset;
+        }
+
+        const limit = req.limit || 10000;
+        const start = events.length - limit - offset;
+        const end = events.length - offset;
+
+        const nextForwardToken = `f/${cuuid()}`;
+        this.tokens[nextForwardToken] = {
+            offset: offset + (-limit)
+        };
+        const nextBackwardToken = `b/${cuuid()}`;
+        this.tokens[nextBackwardToken] = {
+            offset: offset + limit
+        };
+
+        const items = events.slice(start, end);
+
         // tslint:disable-next-line: no-unnecessary-local-variable
         const res: GetLogEventsResponse = {
-            events: events.slice(0, req.limit || 50)
+            events: items,
+            nextForwardToken,
+            nextBackwardToken
         };
         return res;
     }

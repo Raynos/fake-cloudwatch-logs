@@ -136,7 +136,7 @@ test('can fetch cloudwatch streams', async (harness, t) => {
     );
 });
 
-test.only('can fetch two batches of streams', async (harness, t) => {
+test('can fetch two batches of streams', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
 
@@ -161,7 +161,6 @@ test.only('can fetch two batches of streams', async (harness, t) => {
         res1.logStreams![9].logStreamName,
         `my-log-stream-${gCounter - 21}`
     );
-    console.log('res1', res1.logStreams)
 
     const res2 = await cw.describeLogStreams({
         limit: 10,
@@ -207,6 +206,137 @@ test('can fetch log events', async (harness, t) => {
         res2.events![0].message,
         `[INFO]: A log message: ${gCounter - 1}`
     );
+});
+
+test('can fetch pages of log events', async (harness, t) => {
+    const cw = harness.getCW();
+    const server = harness.getServer();
+
+    const logEvents: OutputLogEvent[] = [];
+    for (let i = 0; i < 50; i++) {
+        logEvents.push(makeLogEvent(50 - i));
+    }
+    server.populateEvents('test-group', 'test-stream', logEvents);
+
+    const res1 = await cw.getLogEvents({
+        limit: 10,
+        logGroupName: 'test-group',
+        logStreamName: 'test-stream'
+    }).promise();
+    t.ok(res1.events);
+    t.ok(res1.nextBackwardToken);
+    t.ok(res1.nextForwardToken);
+    t.equal(res1.events!.length, 10);
+    t.equal(
+        res1.events![0].message,
+        `[INFO]: A log message: ${gCounter - 10}`
+    );
+    t.equal(
+        res1.events![9].message,
+        `[INFO]: A log message: ${gCounter - 1}`
+    );
+    const ts0 = res1.events![0].timestamp;
+    const ts9 = res1.events![9].timestamp;
+    t.ok(ts0 && ts9 && ts0 < ts9);
+
+    const res2 = await cw.getLogEvents({
+        limit: 10,
+        logGroupName: 'test-group',
+        logStreamName: 'test-stream',
+        nextToken: res1.nextForwardToken
+    }).promise();
+    t.ok(res2.events);
+    t.equal(res2.events!.length, 0);
+    t.ok(res2.nextBackwardToken);
+    t.ok(res2.nextForwardToken);
+
+    const res3 = await cw.getLogEvents({
+        limit: 10,
+        logGroupName: 'test-group',
+        logStreamName: 'test-stream',
+        nextToken: res2.nextBackwardToken
+    }).promise();
+    t.ok(res3.events);
+    t.equal(res3.events!.length, 10);
+    t.ok(res3.nextBackwardToken);
+    t.ok(res3.nextForwardToken);
+    t.equal(
+        res3.events![0].message,
+        `[INFO]: A log message: ${gCounter - 10}`
+    );
+    t.equal(
+        res3.events![9].message,
+        `[INFO]: A log message: ${gCounter - 1}`
+    );
+    const ts3_0 = res3.events![0].timestamp;
+    const ts3_9 = res3.events![9].timestamp;
+    t.ok(ts3_0 && ts3_9 && ts3_0 < ts3_9);
+
+    const res4 = await cw.getLogEvents({
+        limit: 10,
+        logGroupName: 'test-group',
+        logStreamName: 'test-stream',
+        nextToken: res3.nextBackwardToken
+    }).promise();
+    t.ok(res4.events);
+    t.equal(res4.events!.length, 10);
+    t.ok(res4.nextBackwardToken);
+    t.ok(res4.nextForwardToken);
+    t.equal(
+        res4.events![0].message,
+        `[INFO]: A log message: ${gCounter - 20}`
+    );
+    t.equal(
+        res4.events![9].message,
+        `[INFO]: A log message: ${gCounter - 11}`
+    );
+    const ts4_0 = res4.events![0].timestamp;
+    const ts4_9 = res4.events![9].timestamp;
+    t.ok(ts4_0 && ts4_9 && ts4_0 < ts4_9);
+
+    const res5 = await cw.getLogEvents({
+        limit: 10,
+        logGroupName: 'test-group',
+        logStreamName: 'test-stream',
+        nextToken: res4.nextBackwardToken
+    }).promise();
+    t.ok(res5.events);
+    t.equal(res5.events!.length, 10);
+    t.ok(res5.nextBackwardToken);
+    t.ok(res5.nextForwardToken);
+    t.equal(
+        res5.events![0].message,
+        `[INFO]: A log message: ${gCounter - 30}`
+    );
+    t.equal(
+        res5.events![9].message,
+        `[INFO]: A log message: ${gCounter - 21}`
+    );
+    const ts5_0 = res5.events![0].timestamp;
+    const ts5_9 = res5.events![9].timestamp;
+    t.ok(ts5_0 && ts5_9 && ts5_0 < ts5_9);
+
+    const res6 = await cw.getLogEvents({
+        limit: 10,
+        logGroupName: 'test-group',
+        logStreamName: 'test-stream',
+        nextToken: res5.nextForwardToken
+    }).promise();
+    t.ok(res6.events);
+    t.equal(res6.events!.length, 10);
+    t.ok(res6.nextBackwardToken);
+    t.ok(res6.nextForwardToken);
+    t.equal(
+        res6.events![0].message,
+        `[INFO]: A log message: ${gCounter - 20}`
+    );
+    t.equal(
+        res6.events![9].message,
+        `[INFO]: A log message: ${gCounter - 11}`
+    );
+    const ts6_0 = res6.events![0].timestamp;
+    const ts6_9 = res6.events![9].timestamp;
+    t.ok(ts6_0 && ts6_9 && ts6_0 < ts6_9);
 });
 
 test('can cache groups to disk', async (harness, t) => {
@@ -281,7 +411,7 @@ test('can cache events to disk', async (harness, t) => {
 
     const logEvents: OutputLogEvent[] = [];
     for (let i = 0; i < 30; i++) {
-        logEvents.push(makeLogEvent());
+        logEvents.push(makeLogEvent(30 - i));
     }
 
     const cachePath = path.join(
@@ -301,17 +431,21 @@ test('can cache events to disk', async (harness, t) => {
     t.equal(res2.events!.length, 10);
     t.equal(
         res2.events![0].message,
-        `[INFO]: A log message: ${gCounter - 30}`
+        `[INFO]: A log message: ${gCounter - 10}`
     );
     t.equal(
         res2.events![9].message,
-        `[INFO]: A log message: ${gCounter - 21}`
+        `[INFO]: A log message: ${gCounter - 1}`
     );
+    const ts0 = res2.events![0].timestamp;
+    const ts9 = res2.events![9].timestamp;
+    t.ok(ts0 && ts9 && ts0 < ts9);
 });
 
-function makeLogEvent(): OutputLogEvent {
+function makeLogEvent(timeOffset?: number): OutputLogEvent {
+    timeOffset = timeOffset || 0;
     return {
-        timestamp: Date.now(),
+        timestamp: Date.now() - timeOffset,
         ingestionTime: Date.now(),
         message: `[INFO]: A log message: ${gCounter++}`
     };
