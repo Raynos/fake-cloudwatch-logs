@@ -84,7 +84,7 @@ test_harness_1.test('can fetch cloudwatch streams', async (harness, t) => {
     t.equal(res2.logStreams.length, 1);
     t.equal(res2.logStreams[0].logStreamName, `my-log-stream-${gCounter - 1}`);
 });
-test_harness_1.test('can fetch two batches of streams', async (harness, t) => {
+test_harness_1.test.only('can fetch two batches of streams', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
     const logStreams = [];
@@ -101,6 +101,7 @@ test_harness_1.test('can fetch two batches of streams', async (harness, t) => {
     t.equal(res1.logStreams.length, 10);
     t.equal(res1.logStreams[0].logStreamName, `my-log-stream-${gCounter - 30}`);
     t.equal(res1.logStreams[9].logStreamName, `my-log-stream-${gCounter - 21}`);
+    console.log('res1', res1.logStreams);
     const res2 = await cw.describeLogStreams({
         limit: 10,
         logGroupName: 'test-group',
@@ -200,18 +201,33 @@ function makeLogEvent() {
     };
 }
 function makeLogStream() {
+    const logStreamName = `my-log-stream-${gCounter++}`;
     return {
-        logStreamName: `my-log-stream-${gCounter++}`,
+        logStreamName,
         creationTime: Date.now(),
-        firstEventTimestamp: 0,
-        lastEventTimestamp: 0
+        firstEventTimestamp: Date.now(),
+        lastEventTimestamp: Date.now(),
+        lastIngestionTime: Date.now(),
+        arn: 'arn:aws:logs:us-east-1:0:log-group:???:' +
+            `log-stream:${logStreamName}`,
+        uploadSequenceToken: (
+        // tslint:disable-next-line: insecure-random
+        Math.random().toString() + Math.random().toString() +
+            // tslint:disable-next-line: insecure-random
+            Math.random().toString() + Math.random().toString()).replace(/\./g, ''),
+        // tslint:disable-next-line: insecure-random
+        storedBytes: Math.floor(Math.random() * 1024 * 1024)
     };
 }
 function makeLogGroup() {
+    const logGroupName = `my-log-group-${gCounter++}`;
     return {
-        logGroupName: `my-log-group-${gCounter++}`,
+        logGroupName,
         creationTime: Date.now(),
-        retentionInDays: 7
+        metricFilterCount: 0,
+        arn: `arn:aws:logs:us-east-1:0:log-group:${logGroupName}:*`,
+        // tslint:disable-next-line: insecure-random
+        storedBytes: Math.floor(Math.random() * 1024 * 1024)
     };
 }
 function cuuid() {

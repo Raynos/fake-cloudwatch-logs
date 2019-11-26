@@ -20,12 +20,22 @@ class FakeCloudwatchLogs {
         this.rawEvents = {};
         this.tokens = {};
     }
+    async tryMkdir(filePath) {
+        try {
+            await mkdirP(filePath);
+        }
+        catch (maybeErr) {
+            const err = maybeErr;
+            if (err.code !== 'EEXIST')
+                throw err;
+        }
+    }
     async cacheGroupsToDisk(filePath, groups) {
         this.touchedCache = true;
         if (!this.knownCaches.includes(filePath)) {
             this.knownCaches.push(filePath);
         }
-        await mkdirP(filePath);
+        await this.tryMkdir(filePath);
         await writeFileP(path.join(filePath, 'groups.json'), JSON.stringify({
             type: 'cached-log-group',
             groups
@@ -36,10 +46,11 @@ class FakeCloudwatchLogs {
         if (!this.knownCaches.includes(filePath)) {
             this.knownCaches.push(filePath);
         }
-        await mkdirP(filePath);
-        await mkdirP(path.join(filePath, 'groups'));
-        await mkdirP(path.join(filePath, 'groups', groupName));
-        await writeFileP(path.join(filePath, 'groups', groupName, 'streams.json'), JSON.stringify({
+        const key = encodeURIComponent(groupName);
+        await this.tryMkdir(filePath);
+        await this.tryMkdir(path.join(filePath, 'groups'));
+        await this.tryMkdir(path.join(filePath, 'groups', key));
+        await writeFileP(path.join(filePath, 'groups', key, 'streams.json'), JSON.stringify({
             type: 'cached-log-stream',
             groupName,
             streams
@@ -51,10 +62,10 @@ class FakeCloudwatchLogs {
             this.knownCaches.push(filePath);
         }
         const streamsDir = path.join(filePath, 'streams');
-        const key = groupName + ':' + streamName;
-        await mkdirP(filePath);
-        await mkdirP(path.join(streamsDir));
-        await mkdirP(path.join(streamsDir, key));
+        const key = encodeURIComponent(groupName + ':' + streamName);
+        await this.tryMkdir(filePath);
+        await this.tryMkdir(path.join(streamsDir));
+        await this.tryMkdir(path.join(streamsDir, key));
         await writeFileP(path.join(streamsDir, key, 'events.json'), JSON.stringify({
             type: 'cached-log-event',
             groupName,
@@ -120,15 +131,19 @@ class FakeCloudwatchLogs {
         rawStreams.push(...streams);
     }
     populateEvents(groupName, streamName, events) {
-        let eventsByGroup = this.rawEvents[groupName];
-        if (eventsByGroup === undefined) {
-            eventsByGroup = this.rawEvents[groupName] = {};
+        const key = groupName + '~~' + streamName;
+        let rawEvents = this.rawEvents[key];
+        if (rawEvents === undefined) {
+            rawEvents = this.rawEvents[key] = [];
         }
-        let eventsByStream = eventsByGroup[streamName];
-        if (!eventsByStream) {
-            eventsByStream = eventsByGroup[streamName] = [];
-        }
-        eventsByStream.push(...events);
+        rawEvents.push(...events);
+        rawEvents.sort((a, b) => {
+            if (!a.timestamp)
+                return 1;
+            if (!b.timestamp)
+                return -1;
+            return a.timestamp < b.timestamp ? -1 : 1;
+        });
     }
     async bootstrap() {
         if (!this.httpServer) {
@@ -241,16 +256,37 @@ class FakeCloudwatchLogs {
         };
         return res;
     }
+    /**
+     * getLogEvents() always returns the tail of the events
+     *
+     * nextBackwardToken returns another record further back in
+     * time.
+     *
+     * nextForwardToken returns a pointer to go forward in time
+     *
+     * So if you have 50 events and you get limit=10 return
+     *      {
+     *          events = 40-49
+     *          nextForwardToken = null
+     *          nextBackwardToken = pointer => 30-39
+     *      }
+     *
+     * If someone queries with the backward token return
+     *
+     *      {
+     *          events = 30-39
+     *          nextForwardToken = pointer => 40-49
+     *          nextBackwardToken = pointer => 20-29
+     *      }
+     */
     getLogEvents(body) {
         const req = JSON.parse(body);
+        // TODO: sort order
         // TODO: req.startTime
         // TODO: req.endTime
         // TODO: req.startFromHead
-        const eventsByGroup = this.rawEvents[req.logGroupName];
-        if (!eventsByGroup) {
-            return {};
-        }
-        const events = eventsByGroup[req.logStreamName];
+        const key = req.logGroupName + '~~' + req.logStreamName;
+        const events = this.rawEvents[key];
         if (!events) {
             return {};
         }

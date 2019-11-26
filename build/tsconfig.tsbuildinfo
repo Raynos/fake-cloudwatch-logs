@@ -1170,8 +1170,8 @@
         "signature": "439e91d567a2cbf2cd8dd69d7b3f9cfdc8dbfcb3f0d6f31e00f11ed20c5ff90d"
       },
       "/home/raynos/projects/fake-cloudwatch-logs/src/index.ts": {
-        "version": "f21bd8b5437f0ca6e704d0febb3b1480befa6f05d74f19ef887b87dc86436647",
-        "signature": "85d62b703bef73ad86e7b310263ecc5115def212c6c4787a91ad521feb37798c"
+        "version": "91e6d6837e0d1473d1b32b8164040a6c16c4d97050e45af776301e97c02212f1",
+        "signature": "f8c4da11680752c6fa01a89b1aa254371d18a79967ad1cdc65a08896ec23c023"
       },
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/lib/credentials/cognito_identity_credentials.d.ts": {
         "version": "f575f1f4c48f490b4cd4d056e1ffc7d9e20519023ff8e39ae1bc1fe34c253a1c",
@@ -1246,7 +1246,7 @@
         "signature": "be8b91fc12a4ab12a74d93c3a6318db3cfd3ca559fc05ce9eda4131655c89793"
       },
       "/home/raynos/projects/fake-cloudwatch-logs/test/index.ts": {
-        "version": "a38f214b3709921b4207c91c83fababe9e5de3d3241017a85be00c39781b4195",
+        "version": "157c602bc1dd74829ea42656cb22f89461b193923dfb5c02382749e9f2e688c6",
         "signature": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
       }
     },
@@ -6828,7 +6828,6 @@
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/lib/http_request.d.ts",
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/lib/request.d.ts",
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/clients/cloudwatchlogs.d.ts",
-      "/home/raynos/projects/fake-cloudwatch-logs/src/index.ts",
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/lib/credentials/cognito_identity_credentials.d.ts",
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/lib/credentials/ec2_metadata_credentials.d.ts",
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/lib/credentials/remote_credentials.d.ts",
@@ -6847,7 +6846,8 @@
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/lib/core.d.ts",
       "/home/raynos/projects/fake-cloudwatch-logs/node_modules/aws-sdk/index.d.ts",
       "/home/raynos/projects/fake-cloudwatch-logs/test/test-harness.ts",
-      "/home/raynos/projects/fake-cloudwatch-logs/test/index.ts"
+      "/home/raynos/projects/fake-cloudwatch-logs/test/index.ts",
+      "/home/raynos/projects/fake-cloudwatch-logs/src/index.ts"
     ]
   },
   "version": "3.4.5"
