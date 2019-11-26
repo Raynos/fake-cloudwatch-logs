@@ -136,7 +136,7 @@ test('can fetch cloudwatch streams', async (harness, t) => {
     );
 });
 
-test('can fetch two batches of streams', async (harness, t) => {
+test.only('can fetch two batches of streams', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
 
@@ -161,6 +161,7 @@ test('can fetch two batches of streams', async (harness, t) => {
         res1.logStreams![9].logStreamName,
         `my-log-stream-${gCounter - 21}`
     );
+    console.log('res1', res1.logStreams)
 
     const res2 = await cw.describeLogStreams({
         limit: 10,
@@ -317,16 +318,28 @@ function makeLogEvent(): OutputLogEvent {
 }
 
 function makeLogStream(): LogStream {
+    const logStreamName = `my-log-stream-${gCounter++}`;
     return {
-        logStreamName: `my-log-stream-${gCounter++}`,
+        logStreamName,
         creationTime: Date.now(),
-        firstEventTimestamp: 0,
-        lastEventTimestamp: 0
+        firstEventTimestamp: Date.now(),
+        lastEventTimestamp: Date.now(),
+        lastIngestionTime: Date.now(),
+        arn: 'arn:aws:logs:us-east-1:0:log-group:???:' +
+            `log-stream:${logStreamName}`,
+        uploadSequenceToken: (
+            // tslint:disable-next-line: insecure-random
+            Math.random().toString() + Math.random().toString() +
+            // tslint:disable-next-line: insecure-random
+            Math.random().toString() + Math.random().toString()
+        ).replace(/\./g, ''),
+        // tslint:disable-next-line: insecure-random
+        storedBytes: Math.floor(Math.random() * 1024 * 1024)
     };
 }
 
 function makeLogGroup(): LogGroup {
-    const logGroupName = `my-log-group-${gCounter++}`
+    const logGroupName = `my-log-group-${gCounter++}`;
     return {
         logGroupName,
         creationTime: Date.now(),

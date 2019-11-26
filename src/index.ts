@@ -41,9 +41,7 @@ export class FakeCloudwatchLogs {
     private hostPort: string | null;
     private readonly rawGroups: LogGroup[];
     private readonly rawStreams: Dictionary<LogStream[]>;
-    private readonly rawEvents: Dictionary<
-        Dictionary<OutputLogEvent[]>
-    >;
+    private readonly rawEvents: Dictionary<OutputLogEvent[]>;
     private readonly tokens: Dictionary<{
         offset: number
     }>;
@@ -238,17 +236,18 @@ export class FakeCloudwatchLogs {
         streamName: string,
         events: OutputLogEvent[]
     ): void {
-        let eventsByGroup = this.rawEvents[groupName];
-        if (eventsByGroup === undefined) {
-            eventsByGroup = this.rawEvents[groupName] = {};
-        }
+        const key = groupName + '~~' + streamName;
 
-        let eventsByStream = eventsByGroup[streamName];
-        if (!eventsByStream) {
-            eventsByStream = eventsByGroup[streamName] = [];
+        let rawEvents = this.rawEvents[key];
+        if (rawEvents === undefined) {
+            rawEvents = this.rawEvents[key] = [];
         }
-
-        eventsByStream.push(...events);
+        rawEvents.push(...events);
+        rawEvents.sort((a, b) => {
+            if (!a.timestamp) return 1;
+            if (!b.timestamp) return -1;
+            return a.timestamp < b.timestamp ? -1 : 1;
+        });
     }
 
     async bootstrap(): Promise<string> {
@@ -409,20 +408,40 @@ export class FakeCloudwatchLogs {
         return res;
     }
 
+    /**
+     * getLogEvents() always returns the tail of the events
+     *
+     * nextBackwardToken returns another record further back in
+     * time.
+     *
+     * nextForwardToken returns a pointer to go forward in time
+     *
+     * So if you have 50 events and you get limit=10 return
+     *      {
+     *          events = 40-49
+     *          nextForwardToken = null
+     *          nextBackwardToken = pointer => 30-39
+     *      }
+     *
+     * If someone queries with the backward token return
+     *
+     *      {
+     *          events = 30-39
+     *          nextForwardToken = pointer => 40-49
+     *          nextBackwardToken = pointer => 20-29
+     *      }
+     */
     private getLogEvents(
         body: string
     ): GetLogEventsResponse {
         const req = <GetLogEventsRequest> JSON.parse(body);
+        // TODO: sort order
         // TODO: req.startTime
         // TODO: req.endTime
         // TODO: req.startFromHead
 
-        const eventsByGroup = this.rawEvents[req.logGroupName];
-        if (!eventsByGroup) {
-            return {};
-        }
-
-        const events = eventsByGroup[req.logStreamName];
+        const key = req.logGroupName + '~~' + req.logStreamName;
+        const events = this.rawEvents[key]
         if (!events) {
             return {};
         }
