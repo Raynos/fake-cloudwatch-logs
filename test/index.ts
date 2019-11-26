@@ -326,10 +326,14 @@ function makeLogStream(): LogStream {
 }
 
 function makeLogGroup(): LogGroup {
+    const logGroupName = `my-log-group-${gCounter++}`
     return {
-        logGroupName: `my-log-group-${gCounter++}`,
+        logGroupName,
         creationTime: Date.now(),
-        retentionInDays: 7
+        metricFilterCount: 0,
+        arn: `arn:aws:logs:us-east-1:0:log-group:${logGroupName}:*`,
+        // tslint:disable-next-line: insecure-random
+        storedBytes: Math.floor(Math.random() * 1024 * 1024)
     };
 }
 

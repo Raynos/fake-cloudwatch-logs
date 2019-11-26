@@ -1,6 +1,7 @@
 package-lock.json
 
 coverage
+fixtures
 node_modules
 
 .nyc_output

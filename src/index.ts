@@ -61,6 +61,15 @@ export class FakeCloudwatchLogs {
         this.tokens = {};
     }
 
+    private async tryMkdir(filePath: string): Promise<void> {
+        try {
+            await mkdirP(filePath);
+        } catch (maybeErr) {
+            const err = <NodeJS.ErrnoException> maybeErr;
+            if (err.code !== 'EEXIST') throw err;
+        }
+    }
+
     async cacheGroupsToDisk(
         filePath: string, groups: LogGroup[]
     ): Promise<void> {
@@ -69,7 +78,7 @@ export class FakeCloudwatchLogs {
             this.knownCaches.push(filePath);
         }
 
-        await mkdirP(filePath);
+        await this.tryMkdir(filePath);
         await writeFileP(
             path.join(filePath, 'groups.json'),
             JSON.stringify({
@@ -88,11 +97,12 @@ export class FakeCloudwatchLogs {
             this.knownCaches.push(filePath);
         }
 
-        await mkdirP(filePath);
-        await mkdirP(path.join(filePath, 'groups'));
-        await mkdirP(path.join(filePath, 'groups', groupName));
+        const key = encodeURIComponent(groupName);
+        await this.tryMkdir(filePath);
+        await this.tryMkdir(path.join(filePath, 'groups'));
+        await this.tryMkdir(path.join(filePath, 'groups', key));
         await writeFileP(
-            path.join(filePath, 'groups', groupName, 'streams.json'),
+            path.join(filePath, 'groups', key, 'streams.json'),
             JSON.stringify({
                 type: 'cached-log-stream',
                 groupName,
@@ -113,11 +123,11 @@ export class FakeCloudwatchLogs {
         }
 
         const streamsDir = path.join(filePath, 'streams');
-        const key = groupName + ':' + streamName;
+        const key = encodeURIComponent(groupName + ':' + streamName);
 
-        await mkdirP(filePath);
-        await mkdirP(path.join(streamsDir));
-        await mkdirP(path.join(streamsDir, key));
+        await this.tryMkdir(filePath);
+        await this.tryMkdir(path.join(streamsDir));
+        await this.tryMkdir(path.join(streamsDir, key));
         await writeFileP(
             path.join(streamsDir, key, 'events.json'),
             JSON.stringify({
@@ -423,9 +433,6 @@ export class FakeCloudwatchLogs {
         };
         return res;
     }
-
-    // TODO: getLogEvents
-    // TODO: getLogRecord
 
     // TODO: getLogGroupFields ?
     // TODO: filterLogEvents ?
