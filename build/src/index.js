@@ -300,8 +300,14 @@ class FakeCloudwatchLogs {
             offset = tokenInfo.offset;
         }
         const limit = req.limit || 10000;
-        const start = events.length - limit - offset;
-        const end = events.length - offset;
+        let start = events.length - limit - offset;
+        let end = events.length - offset;
+        if (start < 0) {
+            start = 0;
+        }
+        if (end < 0) {
+            end = 0;
+        }
         const nextForwardToken = `f/${cuuid()}`;
         this.tokens[nextForwardToken] = {
             offset: offset + (-limit)

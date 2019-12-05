@@ -133,6 +133,33 @@ test_harness_1.test('can fetch log events', async (harness, t) => {
     t.equal(res2.events.length, 1);
     t.equal(res2.events[0].message, `[INFO]: A log message: ${gCounter - 1}`);
 });
+test_harness_1.test('can fetch uneven pages of log events', async (harness, t) => {
+    const cw = harness.getCW();
+    const server = harness.getServer();
+    const logEvents = [];
+    for (let i = 0; i < 100; i++) {
+        logEvents.push(makeLogEvent(100 - i));
+    }
+    server.populateEvents('test-group', 'test-stream', logEvents);
+    const pages = [];
+    let result;
+    do {
+        result = await cw.getLogEvents({
+            limit: 8,
+            logGroupName: 'test-group',
+            logStreamName: 'test-stream',
+            nextToken: result ?
+                result.nextBackwardToken : undefined
+        }).promise();
+        if (result.events && result.events.length > 0) {
+            pages.push(result.events);
+        }
+    } while (result.events && result.events.length !== 0);
+    t.equal(pages.length, 13);
+    for (const [index, p] of pages.entries()) {
+        t.equal(p.length, index === 12 ? 4 : 8);
+    }
+});
 test_harness_1.test('can fetch pages of log events', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
