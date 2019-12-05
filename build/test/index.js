@@ -142,7 +142,7 @@ test_harness_1.test('can fetch uneven pages of log events', async (harness, t) =
     }
     server.populateEvents('test-group', 'test-stream', logEvents);
     const pages = [];
-    let result;
+    let result = null;
     do {
         result = await cw.getLogEvents({
             limit: 8,
