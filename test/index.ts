@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { test } from './test-harness';
 import {
-    LogGroup, LogStream, OutputLogEvent
+    LogGroup, LogStream, OutputLogEvent, GetLogEventsResponse
 } from 'aws-sdk/clients/cloudwatchlogs';
 
 let gCounter = 0;
@@ -218,9 +218,9 @@ test('can fetch uneven pages of log events', async (harness, t) => {
     }
     server.populateEvents('test-group', 'test-stream', logEvents);
 
-    const pages = [];
+    const pages: Array<OutputLogEvent[]> = [];
 
-    let result;
+    let result: GetLogEventsResponse | null = null;
     do {
         result = await cw.getLogEvents({
             limit: 8,
