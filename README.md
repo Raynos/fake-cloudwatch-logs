@@ -7,8 +7,7 @@ Setup a fake Cloudwatch logs server for testing purposes
 ```js
 const AWS = require('aws-sdk')
 const path = require('path')
-const FakeCloudwatchLogs =
-  require('fake-cloudwatch-logs').FakeCloudwatchLogs
+const { FakeCloudwatchLogs } = require('fake-cloudwatch-logs')
 
 async function test() {
   const server = new FakeCloudwatchLogs({

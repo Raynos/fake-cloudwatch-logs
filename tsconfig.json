@@ -1,7 +1,6 @@
 {
     "compilerOptions": {
       "rootDir": ".",
-      "incremental": true,
       "outDir": "build",
       "target": "ES2017",
       "types": ["node"],
