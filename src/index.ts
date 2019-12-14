@@ -440,9 +440,19 @@ export class FakeCloudwatchLogs {
         // TODO: req.startFromHead
 
         const key = req.logGroupName + '~~' + req.logStreamName;
-        const events = this.rawEvents[key];
+        let events = this.rawEvents[key];
         if (!events) {
             return {};
+        }
+
+        if (req.startTime || req.endTime) {
+            const startTime = req.startTime || 0;
+            const endTime = req.endTime || Infinity;
+            events = events.filter((e) => {
+                if (!e.timestamp) return false;
+                return startTime <= e.timestamp &&
+                    endTime > e.timestamp;
+            });
         }
 
         let offset = 0;

@@ -475,6 +475,40 @@ test('can cache events to disk', async (harness, t) => {
     t.ok(ts0 && ts9 && ts0 < ts9);
 });
 
+test('can fetch log events by startTime & endTime',
+    async (harness, t) => {
+        const cw = harness.getCW();
+        const server = harness.getServer();
+
+        const logEvents: OutputLogEvent[] = [];
+        for (let i = 0; i < 100; i++) {
+            logEvents.push(makeLogEvent(100 - i));
+        }
+        server.populateEvents('test-group', 'test-stream', logEvents);
+
+        const startTime = logEvents[20].timestamp;
+        const endTime = logEvents[30].timestamp;
+
+        const result = await cw.getLogEvents({
+            logGroupName: 'test-group',
+            logStreamName: 'test-stream',
+            startTime,
+            endTime
+        }).promise();
+
+        const events = result.events;
+
+        t.equal(events!.length, 10);
+        t.equal(
+            events![0].message,
+            `[INFO]: A log message: ${gCounter - 80}`
+        );
+        t.equal(
+            events![9].message,
+            `[INFO]: A log message: ${gCounter - 71}`
+        );
+    });
+
 function makeLogEvent(timeOffset?: number): OutputLogEvent {
     timeOffset = timeOffset || 0;
     return {
