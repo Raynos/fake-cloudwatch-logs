@@ -6,5 +6,10 @@ declare function rimraf(
     filePath: string,
     cb: (err?: Error) => void
 ): void;
+declare function rimraf(
+    filePath: string,
+    options: { disableGlob: boolean },
+    cb: (err?: Error) => void
+): void;
 
 export = rimraf;
