@@ -1,8 +1,8 @@
 'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
 const AWS = require("aws-sdk");
-const tape = require("tape");
-const rimraf = require("rimraf");
+const tape = require("@pre-bundled/tape");
+const rimraf = require("@pre-bundled/rimraf");
 const util = require("util");
 const tapeCluster = require("tape-cluster");
 const index_1 = require("../src/index");
@@ -35,7 +35,9 @@ class TestHarness {
         await this.cwServer.close();
         for (const cachePath of this.cwServer.knownCaches) {
             await util.promisify((cb) => {
-                rimraf(cachePath, cb);
+                rimraf(cachePath, {
+                    disableGlob: true
+                }, cb);
             })();
         }
     }
