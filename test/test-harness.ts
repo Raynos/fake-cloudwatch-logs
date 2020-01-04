@@ -1,8 +1,8 @@
 'use strict';
 
 import * as AWS from 'aws-sdk';
-import * as tape from 'tape';
-import * as rimraf from 'rimraf';
+import * as tape from '@pre-bundled/tape';
+import * as rimraf from '@pre-bundled/rimraf';
 import * as util from 'util';
 import * as tapeCluster from 'tape-cluster';
 
@@ -49,7 +49,9 @@ export class TestHarness {
 
         for (const cachePath of this.cwServer.knownCaches) {
             await util.promisify((cb: Callback) => {
-                rimraf(cachePath, cb);
+                rimraf(cachePath, {
+                    disableGlob: true
+                }, cb);
             })();
         }
     }
