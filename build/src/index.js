@@ -246,7 +246,7 @@ class FakeCloudwatchLogs {
         // TODO: req.orderBy
         const streamsByGroup = this.rawStreams[req.logGroupName];
         if (!streamsByGroup) {
-            return {};
+            return { logStreams: [] };
         }
         const page = this.paginate(streamsByGroup, req.nextToken, req.limit);
         // tslint:disable-next-line: no-unnecessary-local-variable
@@ -287,7 +287,9 @@ class FakeCloudwatchLogs {
         const key = req.logGroupName + '~~' + req.logStreamName;
         let events = this.rawEvents[key];
         if (!events) {
-            return {};
+            return {
+                events: []
+            };
         }
         if (req.startTime || req.endTime) {
             const startTime = req.startTime || 0;
