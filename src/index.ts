@@ -391,7 +391,7 @@ export class FakeCloudwatchLogs {
 
         const streamsByGroup = this.rawStreams[req.logGroupName];
         if (!streamsByGroup) {
-            return {};
+            return { logStreams: [] };
         }
 
         const page = this.paginate(
@@ -442,7 +442,9 @@ export class FakeCloudwatchLogs {
         const key = req.logGroupName + '~~' + req.logStreamName;
         let events = this.rawEvents[key];
         if (!events) {
-            return {};
+            return {
+                events: []
+            };
         }
 
         if (req.startTime || req.endTime) {

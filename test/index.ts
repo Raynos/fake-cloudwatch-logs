@@ -118,7 +118,7 @@ test('can fetch cloudwatch streams', async (harness, t) => {
         logGroupName: 'test-group'
     }).promise();
     t.ok(res);
-    t.equal(res.logStreams, undefined);
+    t.deepEqual(res.logStreams, []);
 
     const server = harness.getServer();
     server.populateStreams('test-group', [
@@ -188,7 +188,7 @@ test('can fetch log events', async (harness, t) => {
         logStreamName: 'test-stream'
     }).promise();
     t.ok(res1);
-    t.equal(res1.events, undefined);
+    t.deepEqual(res1.events, []);
 
     const server = harness.getServer();
     server.populateEvents('test-group', 'test-stream', [
