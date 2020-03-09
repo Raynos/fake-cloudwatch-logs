@@ -1,61 +1,100 @@
-'use strict';
-Object.defineProperty(exports, "__esModule", { value: true });
-const os = require("os");
-const path = require("path");
-const test_harness_1 = require("./test-harness");
+"use strict";'use strict';
+
+var _os = require('os'); var os = _os;
+var _path = require('path'); var path = _path;
+var _testharness = require('./test-harness');
+
+
+
+
+
 let gCounter = 0;
+
 // tslint:disable: no-non-null-assertion
-test_harness_1.test('can fetch cloudwatch groups', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can fetch cloudwatch groups', async (harness, t) => {
     const cw = harness.getCW();
+
     const res = await cw.describeLogGroups().promise();
     t.ok(res.logGroups);
     t.equal(res.logGroups.length, 0);
+
     const server = harness.getServer();
     server.populateGroups([
         makeLogGroup()
     ]);
+
     const res2 = await cw.describeLogGroups().promise();
     t.ok(res2.logGroups);
     t.equal(res2.logGroups.length, 1);
-    t.equal(res2.logGroups[0].logGroupName, `my-log-group-${gCounter - 1}`);
+    t.equal(
+        res2.logGroups[0].logGroupName,
+        `my-log-group-${gCounter - 1}`
+    );
 });
-test_harness_1.test('can fetch limit=10 groups', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can fetch limit=10 groups', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
+
     const logGroups = [];
     for (let i = 0; i < 100; i++) {
         logGroups.push(makeLogGroup());
     }
     server.populateGroups(logGroups);
+
     const res1 = await cw.describeLogGroups().promise();
     t.ok(res1.logGroups);
     t.equal(res1.logGroups.length, 50);
-    t.equal(res1.logGroups[0].logGroupName, `my-log-group-${gCounter - 100}`);
-    t.equal(res1.logGroups[49].logGroupName, `my-log-group-${gCounter - 51}`);
+    t.equal(
+        res1.logGroups[0].logGroupName,
+        `my-log-group-${gCounter - 100}`
+    );
+    t.equal(
+        res1.logGroups[49].logGroupName,
+        `my-log-group-${gCounter - 51}`
+    );
+
     const res2 = await cw.describeLogGroups({
         limit: 10
     }).promise();
     t.ok(res2.logGroups);
     t.equal(res2.logGroups.length, 10);
-    t.equal(res2.logGroups[0].logGroupName, `my-log-group-${gCounter - 100}`);
-    t.equal(res2.logGroups[9].logGroupName, `my-log-group-${gCounter - 91}`);
+    t.equal(
+        res2.logGroups[0].logGroupName,
+        `my-log-group-${gCounter - 100}`
+    );
+    t.equal(
+        res2.logGroups[9].logGroupName,
+        `my-log-group-${gCounter - 91}`
+    );
 });
-test_harness_1.test('can fetch two batches of groups', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can fetch two batches of groups', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
+
     const logGroups = [];
     for (let i = 0; i < 30; i++) {
         logGroups.push(makeLogGroup());
     }
     server.populateGroups(logGroups);
+
     const res1 = await cw.describeLogGroups({
         limit: 10
     }).promise();
     t.ok(res1.logGroups);
     t.ok(res1.nextToken);
     t.equal(res1.logGroups.length, 10);
-    t.equal(res1.logGroups[0].logGroupName, `my-log-group-${gCounter - 30}`);
-    t.equal(res1.logGroups[9].logGroupName, `my-log-group-${gCounter - 21}`);
+    t.equal(
+        res1.logGroups[0].logGroupName,
+        `my-log-group-${gCounter - 30}`
+    );
+    t.equal(
+        res1.logGroups[9].logGroupName,
+        `my-log-group-${gCounter - 21}`
+    );
+
     const res2 = await cw.describeLogGroups({
         limit: 10,
         nextToken: res1.nextToken
@@ -63,35 +102,51 @@ test_harness_1.test('can fetch two batches of groups', async (harness, t) => {
     t.ok(res2.logGroups);
     t.ok(res2.nextToken);
     t.equal(res2.logGroups.length, 10);
-    t.equal(res2.logGroups[0].logGroupName, `my-log-group-${gCounter - 20}`);
-    t.equal(res2.logGroups[9].logGroupName, `my-log-group-${gCounter - 11}`);
+    t.equal(
+        res2.logGroups[0].logGroupName,
+        `my-log-group-${gCounter - 20}`
+    );
+    t.equal(
+        res2.logGroups[9].logGroupName,
+        `my-log-group-${gCounter - 11}`
+    );
 });
-test_harness_1.test('can fetch cloudwatch streams', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can fetch cloudwatch streams', async (harness, t) => {
     const cw = harness.getCW();
+
     const res = await cw.describeLogStreams({
         logGroupName: 'test-group'
     }).promise();
     t.ok(res);
     t.deepEqual(res.logStreams, []);
+
     const server = harness.getServer();
-    server.populateStreams('test-group', [
+    populateStreams(server, 'test-group', [
         makeLogStream()
     ]);
+
     const res2 = await cw.describeLogStreams({
         logGroupName: 'test-group'
     }).promise();
     t.ok(res2.logStreams);
     t.equal(res2.logStreams.length, 1);
-    t.equal(res2.logStreams[0].logStreamName, `my-log-stream-${gCounter - 1}`);
+    t.equal(
+        res2.logStreams[0].logStreamName,
+        `my-log-stream-${gCounter - 1}`
+    );
 });
-test_harness_1.test('can fetch two batches of streams', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can fetch two batches of streams', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
+
     const logStreams = [];
     for (let i = 0; i < 30; i++) {
         logStreams.push(makeLogStream());
     }
-    server.populateStreams('test-group', logStreams);
+    populateStreams(server, 'test-group', logStreams);
+
     const res1 = await cw.describeLogStreams({
         limit: 10,
         logGroupName: 'test-group'
@@ -99,8 +154,15 @@ test_harness_1.test('can fetch two batches of streams', async (harness, t) => {
     t.ok(res1.logStreams);
     t.ok(res1.nextToken);
     t.equal(res1.logStreams.length, 10);
-    t.equal(res1.logStreams[0].logStreamName, `my-log-stream-${gCounter - 30}`);
-    t.equal(res1.logStreams[9].logStreamName, `my-log-stream-${gCounter - 21}`);
+    t.equal(
+        res1.logStreams[0].logStreamName,
+        `my-log-stream-${gCounter - 30}`
+    );
+    t.equal(
+        res1.logStreams[9].logStreamName,
+        `my-log-stream-${gCounter - 21}`
+    );
+
     const res2 = await cw.describeLogStreams({
         limit: 10,
         logGroupName: 'test-group',
@@ -109,21 +171,31 @@ test_harness_1.test('can fetch two batches of streams', async (harness, t) => {
     t.ok(res2.logStreams);
     t.ok(res2.nextToken);
     t.equal(res2.logStreams.length, 10);
-    t.equal(res2.logStreams[0].logStreamName, `my-log-stream-${gCounter - 20}`);
-    t.equal(res2.logStreams[9].logStreamName, `my-log-stream-${gCounter - 11}`);
+    t.equal(
+        res2.logStreams[0].logStreamName,
+        `my-log-stream-${gCounter - 20}`
+    );
+    t.equal(
+        res2.logStreams[9].logStreamName,
+        `my-log-stream-${gCounter - 11}`
+    );
 });
-test_harness_1.test('can fetch log events', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can fetch log events', async (harness, t) => {
     const cw = harness.getCW();
+
     const res1 = await cw.getLogEvents({
         logGroupName: 'test-group',
         logStreamName: 'test-stream'
     }).promise();
     t.ok(res1);
     t.deepEqual(res1.events, []);
+
     const server = harness.getServer();
-    server.populateEvents('test-group', 'test-stream', [
+    populateEvents(server, 'test-group', 'test-stream', [
         makeLogEvent()
     ]);
+
     const res2 = await cw.getLogEvents({
         logGroupName: 'test-group',
         logStreamName: 'test-stream'
@@ -131,17 +203,24 @@ test_harness_1.test('can fetch log events', async (harness, t) => {
     t.ok(res2);
     t.ok(res2.events);
     t.equal(res2.events.length, 1);
-    t.equal(res2.events[0].message, `[INFO]: A log message: ${gCounter - 1}`);
+    t.equal(
+        res2.events[0].message,
+        `[INFO]: A log message: ${gCounter - 1}`
+    );
 });
-test_harness_1.test('can fetch uneven pages of log events', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can fetch uneven pages of log events', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
+
     const logEvents = [];
     for (let i = 0; i < 100; i++) {
         logEvents.push(makeLogEvent(100 - i));
     }
-    server.populateEvents('test-group', 'test-stream', logEvents);
+    populateEvents(server, 'test-group', 'test-stream', logEvents);
+
     const pages = [];
+
     let result = null;
     do {
         result = await cw.getLogEvents({
@@ -151,23 +230,28 @@ test_harness_1.test('can fetch uneven pages of log events', async (harness, t) =
             nextToken: result ?
                 result.nextBackwardToken : undefined
         }).promise();
+
         if (result.events && result.events.length > 0) {
             pages.push(result.events);
         }
     } while (result.events && result.events.length !== 0);
+
     t.equal(pages.length, 13);
     for (const [index, p] of pages.entries()) {
         t.equal(p.length, index === 12 ? 4 : 8);
     }
 });
-test_harness_1.test('can fetch pages of log events', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can fetch pages of log events', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
+
     const logEvents = [];
     for (let i = 0; i < 50; i++) {
         logEvents.push(makeLogEvent(50 - i));
     }
-    server.populateEvents('test-group', 'test-stream', logEvents);
+    populateEvents(server, 'test-group', 'test-stream', logEvents);
+
     const res1 = await cw.getLogEvents({
         limit: 10,
         logGroupName: 'test-group',
@@ -177,11 +261,18 @@ test_harness_1.test('can fetch pages of log events', async (harness, t) => {
     t.ok(res1.nextBackwardToken);
     t.ok(res1.nextForwardToken);
     t.equal(res1.events.length, 10);
-    t.equal(res1.events[0].message, `[INFO]: A log message: ${gCounter - 10}`);
-    t.equal(res1.events[9].message, `[INFO]: A log message: ${gCounter - 1}`);
+    t.equal(
+        res1.events[0].message,
+        `[INFO]: A log message: ${gCounter - 10}`
+    );
+    t.equal(
+        res1.events[9].message,
+        `[INFO]: A log message: ${gCounter - 1}`
+    );
     const ts0 = res1.events[0].timestamp;
     const ts9 = res1.events[9].timestamp;
     t.ok(ts0 && ts9 && ts0 < ts9);
+
     const res2 = await cw.getLogEvents({
         limit: 10,
         logGroupName: 'test-group',
@@ -192,6 +283,7 @@ test_harness_1.test('can fetch pages of log events', async (harness, t) => {
     t.equal(res2.events.length, 0);
     t.ok(res2.nextBackwardToken);
     t.ok(res2.nextForwardToken);
+
     const res3 = await cw.getLogEvents({
         limit: 10,
         logGroupName: 'test-group',
@@ -202,11 +294,18 @@ test_harness_1.test('can fetch pages of log events', async (harness, t) => {
     t.equal(res3.events.length, 10);
     t.ok(res3.nextBackwardToken);
     t.ok(res3.nextForwardToken);
-    t.equal(res3.events[0].message, `[INFO]: A log message: ${gCounter - 10}`);
-    t.equal(res3.events[9].message, `[INFO]: A log message: ${gCounter - 1}`);
+    t.equal(
+        res3.events[0].message,
+        `[INFO]: A log message: ${gCounter - 10}`
+    );
+    t.equal(
+        res3.events[9].message,
+        `[INFO]: A log message: ${gCounter - 1}`
+    );
     const ts3_0 = res3.events[0].timestamp;
     const ts3_9 = res3.events[9].timestamp;
     t.ok(ts3_0 && ts3_9 && ts3_0 < ts3_9);
+
     const res4 = await cw.getLogEvents({
         limit: 10,
         logGroupName: 'test-group',
@@ -217,11 +316,18 @@ test_harness_1.test('can fetch pages of log events', async (harness, t) => {
     t.equal(res4.events.length, 10);
     t.ok(res4.nextBackwardToken);
     t.ok(res4.nextForwardToken);
-    t.equal(res4.events[0].message, `[INFO]: A log message: ${gCounter - 20}`);
-    t.equal(res4.events[9].message, `[INFO]: A log message: ${gCounter - 11}`);
+    t.equal(
+        res4.events[0].message,
+        `[INFO]: A log message: ${gCounter - 20}`
+    );
+    t.equal(
+        res4.events[9].message,
+        `[INFO]: A log message: ${gCounter - 11}`
+    );
     const ts4_0 = res4.events[0].timestamp;
     const ts4_9 = res4.events[9].timestamp;
     t.ok(ts4_0 && ts4_9 && ts4_0 < ts4_9);
+
     const res5 = await cw.getLogEvents({
         limit: 10,
         logGroupName: 'test-group',
@@ -232,11 +338,18 @@ test_harness_1.test('can fetch pages of log events', async (harness, t) => {
     t.equal(res5.events.length, 10);
     t.ok(res5.nextBackwardToken);
     t.ok(res5.nextForwardToken);
-    t.equal(res5.events[0].message, `[INFO]: A log message: ${gCounter - 30}`);
-    t.equal(res5.events[9].message, `[INFO]: A log message: ${gCounter - 21}`);
+    t.equal(
+        res5.events[0].message,
+        `[INFO]: A log message: ${gCounter - 30}`
+    );
+    t.equal(
+        res5.events[9].message,
+        `[INFO]: A log message: ${gCounter - 21}`
+    );
     const ts5_0 = res5.events[0].timestamp;
     const ts5_9 = res5.events[9].timestamp;
     t.ok(ts5_0 && ts5_9 && ts5_0 < ts5_9);
+
     const res6 = await cw.getLogEvents({
         limit: 10,
         logGroupName: 'test-group',
@@ -247,41 +360,68 @@ test_harness_1.test('can fetch pages of log events', async (harness, t) => {
     t.equal(res6.events.length, 10);
     t.ok(res6.nextBackwardToken);
     t.ok(res6.nextForwardToken);
-    t.equal(res6.events[0].message, `[INFO]: A log message: ${gCounter - 20}`);
-    t.equal(res6.events[9].message, `[INFO]: A log message: ${gCounter - 11}`);
+    t.equal(
+        res6.events[0].message,
+        `[INFO]: A log message: ${gCounter - 20}`
+    );
+    t.equal(
+        res6.events[9].message,
+        `[INFO]: A log message: ${gCounter - 11}`
+    );
     const ts6_0 = res6.events[0].timestamp;
     const ts6_9 = res6.events[9].timestamp;
     t.ok(ts6_0 && ts6_9 && ts6_0 < ts6_9);
 });
-test_harness_1.test('can cache groups to disk', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can cache groups to disk', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
+
     const logGroups = [];
     for (let i = 0; i < 30; i++) {
         logGroups.push(makeLogGroup());
     }
-    const cachePath = path.join(os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`);
+
+    const cachePath = path.join(
+        os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
+    );
+
     await server.cacheGroupsToDisk(cachePath, logGroups);
     await server.populateFromCache(cachePath);
+
     const res1 = await cw.describeLogGroups({
         limit: 10
     }).promise();
     t.ok(res1.logGroups);
     t.ok(res1.nextToken);
     t.equal(res1.logGroups.length, 10);
-    t.equal(res1.logGroups[0].logGroupName, `my-log-group-${gCounter - 30}`);
-    t.equal(res1.logGroups[9].logGroupName, `my-log-group-${gCounter - 21}`);
+    t.equal(
+        res1.logGroups[0].logGroupName,
+        `my-log-group-${gCounter - 30}`
+    );
+    t.equal(
+        res1.logGroups[9].logGroupName,
+        `my-log-group-${gCounter - 21}`
+    );
 });
-test_harness_1.test('can cache streams to disk', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can cache streams to disk', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
+
     const logStreams = [];
     for (let i = 0; i < 30; i++) {
         logStreams.push(makeLogStream());
     }
-    const cachePath = path.join(os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`);
-    await server.cacheStreamsToDisk(cachePath, 'test-group', logStreams);
+
+    const cachePath = path.join(
+        os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
+    );
+    await server.cacheStreamsToDisk(
+        cachePath, 'test-group', logStreams
+    );
     await server.populateFromCache(cachePath);
+
     const res1 = await cw.describeLogStreams({
         limit: 10,
         logGroupName: 'test-group'
@@ -289,19 +429,37 @@ test_harness_1.test('can cache streams to disk', async (harness, t) => {
     t.ok(res1.logStreams);
     t.ok(res1.nextToken);
     t.equal(res1.logStreams.length, 10);
-    t.equal(res1.logStreams[0].logStreamName, `my-log-stream-${gCounter - 30}`);
-    t.equal(res1.logStreams[9].logStreamName, `my-log-stream-${gCounter - 21}`);
+    t.equal(
+        res1.logStreams[0].logStreamName,
+        `my-log-stream-${gCounter - 30}`
+    );
+    t.equal(
+        res1.logStreams[9].logStreamName,
+        `my-log-stream-${gCounter - 21}`
+    );
 });
-test_harness_1.test('can cache events to disk', async (harness, t) => {
+
+_testharness.test.call(void 0, 'can cache events to disk', async (harness, t) => {
     const cw = harness.getCW();
     const server = harness.getServer();
+
     const logEvents = [];
     for (let i = 0; i < 30; i++) {
         logEvents.push(makeLogEvent(30 - i));
     }
-    const cachePath = path.join(os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`);
-    await server.cacheEventsToDisk(cachePath, 'test-group', 'test-stream', logEvents);
+
+    server.populateStreams('test-group', [
+        makeLogStream('test-stream')
+    ])
+
+    const cachePath = path.join(
+        os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
+    );
+    await server.cacheEventsToDisk(
+        cachePath, 'test-group', 'test-stream', logEvents
+    );
     await server.populateFromCache(cachePath);
+
     const res2 = await cw.getLogEvents({
         logGroupName: 'test-group',
         logStreamName: 'test-stream',
@@ -309,33 +467,75 @@ test_harness_1.test('can cache events to disk', async (harness, t) => {
     }).promise();
     t.ok(res2.events);
     t.equal(res2.events.length, 10);
-    t.equal(res2.events[0].message, `[INFO]: A log message: ${gCounter - 10}`);
-    t.equal(res2.events[9].message, `[INFO]: A log message: ${gCounter - 1}`);
+    t.equal(
+        res2.events[0].message,
+        `[INFO]: A log message: ${gCounter - 10}`
+    );
+    t.equal(
+        res2.events[9].message,
+        `[INFO]: A log message: ${gCounter - 1}`
+    );
     const ts0 = res2.events[0].timestamp;
     const ts9 = res2.events[9].timestamp;
     t.ok(ts0 && ts9 && ts0 < ts9);
 });
-test_harness_1.test('can fetch log events by startTime & endTime', async (harness, t) => {
-    const cw = harness.getCW();
-    const server = harness.getServer();
-    const logEvents = [];
-    for (let i = 0; i < 100; i++) {
-        logEvents.push(makeLogEvent(100 - i));
-    }
-    server.populateEvents('test-group', 'test-stream', logEvents);
-    const startTime = logEvents[20].timestamp;
-    const endTime = logEvents[30].timestamp;
-    const result = await cw.getLogEvents({
-        logGroupName: 'test-group',
-        logStreamName: 'test-stream',
-        startTime,
-        endTime
-    }).promise();
-    const events = result.events;
-    t.equal(events.length, 10);
-    t.equal(events[0].message, `[INFO]: A log message: ${gCounter - 80}`);
-    t.equal(events[9].message, `[INFO]: A log message: ${gCounter - 71}`);
-});
+
+_testharness.test.call(void 0, 'can fetch log events by startTime & endTime',
+    async (harness, t) => {
+        const cw = harness.getCW();
+        const server = harness.getServer();
+
+        const logEvents = [];
+        for (let i = 0; i < 100; i++) {
+            logEvents.push(makeLogEvent(100 - i));
+        }
+        populateEvents(server, 'test-group', 'test-stream', logEvents);
+
+        const startTime = logEvents[20].timestamp;
+        const endTime = logEvents[30].timestamp;
+
+        const result = await cw.getLogEvents({
+            logGroupName: 'test-group',
+            logStreamName: 'test-stream',
+            startTime,
+            endTime
+        }).promise();
+
+        const events = result.events;
+
+        t.equal(events.length, 10);
+        t.equal(
+            events[0].message,
+            `[INFO]: A log message: ${gCounter - 80}`
+        );
+        t.equal(
+            events[9].message,
+            `[INFO]: A log message: ${gCounter - 71}`
+        );
+    });
+
+function populateEvents (
+    server,
+    logGroupName,
+    logStreamName,
+    events
+) {
+    server.populateGroups([makeLogGroup(logGroupName)])
+    server.populateStreams(
+        logGroupName, [makeLogStream(logStreamName)]
+    )
+    server.populateEvents(logGroupName, logStreamName, events)
+}
+
+function populateStreams (
+    server,
+    logGroupName,
+    streams
+) {
+    server.populateGroups([makeLogGroup(logGroupName)])
+    server.populateStreams(logGroupName, streams)
+}
+
 function makeLogEvent(timeOffset) {
     timeOffset = timeOffset || 0;
     return {
@@ -344,8 +544,9 @@ function makeLogEvent(timeOffset) {
         message: `[INFO]: A log message: ${gCounter++}`
     };
 }
-function makeLogStream() {
-    const logStreamName = `my-log-stream-${gCounter++}`;
+
+function makeLogStream(name) {
+    const logStreamName = name || `my-log-stream-${gCounter++}`;
     return {
         logStreamName,
         creationTime: Date.now(),
@@ -355,16 +556,18 @@ function makeLogStream() {
         arn: 'arn:aws:logs:us-east-1:0:log-group:???:' +
             `log-stream:${logStreamName}`,
         uploadSequenceToken: (
-        // tslint:disable-next-line: insecure-random
-        Math.random().toString() + Math.random().toString() +
             // tslint:disable-next-line: insecure-random
-            Math.random().toString() + Math.random().toString()).replace(/\./g, ''),
+            Math.random().toString() + Math.random().toString() +
+            // tslint:disable-next-line: insecure-random
+            Math.random().toString() + Math.random().toString()
+        ).replace(/\./g, ''),
         // tslint:disable-next-line: insecure-random
         storedBytes: Math.floor(Math.random() * 1024 * 1024)
     };
 }
-function makeLogGroup() {
-    const logGroupName = `my-log-group-${gCounter++}`;
+
+function makeLogGroup(name) {
+    const logGroupName = name || `my-log-group-${gCounter++}`;
     return {
         logGroupName,
         creationTime: Date.now(),
@@ -374,14 +577,16 @@ function makeLogGroup() {
         storedBytes: Math.floor(Math.random() * 1024 * 1024)
     };
 }
+
 function cuuid() {
-    const str = (Date.now().toString(16) +
+    const str = (
+        Date.now().toString(16) +
         // tslint:disable-next-line: insecure-random
         Math.random().toString(16).slice(2) +
         // tslint:disable-next-line: insecure-random
-        Math.random().toString(16).slice(2)).slice(0, 32);
+        Math.random().toString(16).slice(2)
+    ).slice(0, 32);
     return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
         str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
         str.slice(20);
 }
-//# sourceMappingURL=index.js.map
