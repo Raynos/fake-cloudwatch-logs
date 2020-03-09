@@ -19,6 +19,7 @@
       "noUnusedParameters": true,
       "noImplicitAny": true,
       "noImplicitThis": true,
+      "isolatedModules": true,
       "noStrictGenericChecks": false,
       "checkJs": false,
       "strict": true,

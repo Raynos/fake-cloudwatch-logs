@@ -236,6 +236,10 @@ export class FakeCloudwatchLogs {
         streamName: string,
         events: OutputLogEvent[]
     ): void {
+        if (events.length === 0) {
+            throw new Error('cannot add empty events array');
+        }
+
         const key = groupName + '~~' + streamName;
 
         let rawEvents = this.rawEvents[key];
@@ -248,6 +252,33 @@ export class FakeCloudwatchLogs {
             if (!b.timestamp) return -1;
             return a.timestamp < b.timestamp ? -1 : 1;
         });
+
+        const rawStreams = this.rawStreams[groupName];
+        if (!rawStreams) {
+            throw new Error('could not find streams for: ' + groupName);
+        }
+        const stream = rawStreams.find(s => {
+            return s.logStreamName === streamName;
+        });
+        if (!stream) {
+            throw new Error('could not find stream: ' + streamName);
+        }
+
+        let oldestTs = 0;
+        let youngestTs = Infinity;
+        for (const e of rawEvents) {
+            if (!e.timestamp) continue;
+            if (e.timestamp > oldestTs) {
+                oldestTs = e.timestamp;
+            }
+            if (e.timestamp < youngestTs) {
+                youngestTs = e.timestamp;
+            }
+        }
+
+        stream.lastIngestionTime = oldestTs;
+        stream.lastEventTimestamp = oldestTs;
+        stream.firstEventTimestamp = youngestTs;
     }
 
     async bootstrap(): Promise<string> {
@@ -435,8 +466,6 @@ export class FakeCloudwatchLogs {
         body: string
     ): GetLogEventsResponse {
         const req = <GetLogEventsRequest> JSON.parse(body);
-        // TODO: req.startTime
-        // TODO: req.endTime
         // TODO: req.startFromHead
 
         const key = req.logGroupName + '~~' + req.logStreamName;

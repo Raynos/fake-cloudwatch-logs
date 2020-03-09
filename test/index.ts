@@ -6,6 +6,7 @@ import { test } from './test-harness';
 import {
     LogGroup, LogStream, OutputLogEvent, GetLogEventsResponse
 } from 'aws-sdk/clients/cloudwatchlogs';
+import { FakeCloudwatchLogs } from '../src/index';
 
 let gCounter = 0;
 
@@ -121,7 +122,7 @@ test('can fetch cloudwatch streams', async (harness, t) => {
     t.deepEqual(res.logStreams, []);
 
     const server = harness.getServer();
-    server.populateStreams('test-group', [
+    populateStreams(server, 'test-group', [
         makeLogStream()
     ]);
 
@@ -144,7 +145,7 @@ test('can fetch two batches of streams', async (harness, t) => {
     for (let i = 0; i < 30; i++) {
         logStreams.push(makeLogStream());
     }
-    server.populateStreams('test-group', logStreams);
+    populateStreams(server, 'test-group', logStreams);
 
     const res1 = await cw.describeLogStreams({
         limit: 10,
@@ -191,7 +192,7 @@ test('can fetch log events', async (harness, t) => {
     t.deepEqual(res1.events, []);
 
     const server = harness.getServer();
-    server.populateEvents('test-group', 'test-stream', [
+    populateEvents(server, 'test-group', 'test-stream', [
         makeLogEvent()
     ]);
 
@@ -216,7 +217,7 @@ test('can fetch uneven pages of log events', async (harness, t) => {
     for (let i = 0; i < 100; i++) {
         logEvents.push(makeLogEvent(100 - i));
     }
-    server.populateEvents('test-group', 'test-stream', logEvents);
+    populateEvents(server, 'test-group', 'test-stream', logEvents);
 
     const pages: Array<OutputLogEvent[]> = [];
 
@@ -249,7 +250,7 @@ test('can fetch pages of log events', async (harness, t) => {
     for (let i = 0; i < 50; i++) {
         logEvents.push(makeLogEvent(50 - i));
     }
-    server.populateEvents('test-group', 'test-stream', logEvents);
+    populateEvents(server, 'test-group', 'test-stream', logEvents);
 
     const res1 = await cw.getLogEvents({
         limit: 10,
@@ -447,6 +448,10 @@ test('can cache events to disk', async (harness, t) => {
         logEvents.push(makeLogEvent(30 - i));
     }
 
+    server.populateStreams('test-group', [
+        makeLogStream('test-stream')
+    ])
+
     const cachePath = path.join(
         os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
     );
@@ -484,7 +489,7 @@ test('can fetch log events by startTime & endTime',
         for (let i = 0; i < 100; i++) {
             logEvents.push(makeLogEvent(100 - i));
         }
-        server.populateEvents('test-group', 'test-stream', logEvents);
+        populateEvents(server, 'test-group', 'test-stream', logEvents);
 
         const startTime = logEvents[20].timestamp;
         const endTime = logEvents[30].timestamp;
@@ -509,6 +514,28 @@ test('can fetch log events by startTime & endTime',
         );
     });
 
+function populateEvents (
+    server: FakeCloudwatchLogs,
+    logGroupName: string,
+    logStreamName: string,
+    events: OutputLogEvent[]
+) {
+    server.populateGroups([makeLogGroup(logGroupName)])
+    server.populateStreams(
+        logGroupName, [makeLogStream(logStreamName)]
+    )
+    server.populateEvents(logGroupName, logStreamName, events)
+}
+
+function populateStreams (
+    server: FakeCloudwatchLogs,
+    logGroupName: string,
+    streams: LogStream[]
+): void {
+    server.populateGroups([makeLogGroup(logGroupName)])
+    server.populateStreams(logGroupName, streams)
+}
+
 function makeLogEvent(timeOffset?: number): OutputLogEvent {
     timeOffset = timeOffset || 0;
     return {
@@ -518,8 +545,8 @@ function makeLogEvent(timeOffset?: number): OutputLogEvent {
     };
 }
 
-function makeLogStream(): LogStream {
-    const logStreamName = `my-log-stream-${gCounter++}`;
+function makeLogStream(name?: string): LogStream {
+    const logStreamName = name || `my-log-stream-${gCounter++}`;
     return {
         logStreamName,
         creationTime: Date.now(),
@@ -539,8 +566,8 @@ function makeLogStream(): LogStream {
     };
 }
 
-function makeLogGroup(): LogGroup {
-    const logGroupName = `my-log-group-${gCounter++}`;
+function makeLogGroup(name?: string): LogGroup {
+    const logGroupName = name || `my-log-group-${gCounter++}`;
     return {
         logGroupName,
         creationTime: Date.now(),
