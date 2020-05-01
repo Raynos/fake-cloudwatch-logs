@@ -37,6 +37,7 @@
     "@types/node": "12.0.2",
     "aws-sdk": "2.549.0",
     "npm-bin-deps": "1.3.0",
+    "standard": "14.3.3",
     "tape-cluster": "3.2.1"
   },
   "author": "Raynos <raynos2@gmail.com>",
