@@ -10,6 +10,10 @@ const tapeCluster = require('tape-cluster')
 
 const { FakeCloudwatchLogs } = require('../src/index.js')
 
+/**
+ * @typedef {(err?: Error) => void} Callback
+ */
+
 class TestHarness {
   constructor () {
     this.cwServer = new FakeCloudwatchLogs({
@@ -43,7 +47,9 @@ class TestHarness {
     await this.cwServer.close()
 
     for (const cachePath of this.cwServer.knownCaches) {
-      await util.promisify((cb) => {
+      await util.promisify((
+        /** @type {Callback} */ cb
+      ) => {
         rimraf(cachePath, {
           disableGlob: true
         }, cb)

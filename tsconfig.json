@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "types": ["node"],
+    "target": "es2018",
     "lib": ["es2018"],
     "noEmit": true,
     "module": "commonjs",

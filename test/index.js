@@ -6,6 +6,20 @@
 const os = require('os')
 const path = require('path')
 
+/**
+ * @typedef {
+      import('../src/index.js').FakeCloudwatchLogs
+ * } FakeCloudwatchLogs
+ *
+ * @typedef {
+      import('aws-sdk/clients/cloudwatchlogs').OutputLogEvent
+ * } OutputLogEvent
+ *
+ * @typedef {
+      import('aws-sdk/clients/cloudwatchlogs').LogStream
+ * } LogStream
+ */
+
 const { test } = require('./test-harness.js')
 
 let gCounter = 0
@@ -15,6 +29,7 @@ test('can fetch cloudwatch groups', async (harness, t) => {
 
   const res = await cw.describeLogGroups().promise()
   t.ok(res.logGroups)
+  assert(res.logGroups)
   t.equal(res.logGroups.length, 0)
 
   const server = harness.getServer()
@@ -24,6 +39,7 @@ test('can fetch cloudwatch groups', async (harness, t) => {
 
   const res2 = await cw.describeLogGroups().promise()
   t.ok(res2.logGroups)
+  assert(res2.logGroups)
   t.equal(res2.logGroups.length, 1)
   t.equal(
     res2.logGroups[0].logGroupName,
@@ -43,6 +59,7 @@ test('can fetch limit=10 groups', async (harness, t) => {
 
   const res1 = await cw.describeLogGroups().promise()
   t.ok(res1.logGroups)
+  assert(res1.logGroups)
   t.equal(res1.logGroups.length, 50)
   t.equal(
     res1.logGroups[0].logGroupName,
@@ -57,6 +74,7 @@ test('can fetch limit=10 groups', async (harness, t) => {
     limit: 10
   }).promise()
   t.ok(res2.logGroups)
+  assert(res2.logGroups)
   t.equal(res2.logGroups.length, 10)
   t.equal(
     res2.logGroups[0].logGroupName,
@@ -83,6 +101,7 @@ test('can fetch two batches of groups', async (harness, t) => {
   }).promise()
   t.ok(res1.logGroups)
   t.ok(res1.nextToken)
+  assert(res1.logGroups)
   t.equal(res1.logGroups.length, 10)
   t.equal(
     res1.logGroups[0].logGroupName,
@@ -99,6 +118,7 @@ test('can fetch two batches of groups', async (harness, t) => {
   }).promise()
   t.ok(res2.logGroups)
   t.ok(res2.nextToken)
+  assert(res2.logGroups)
   t.equal(res2.logGroups.length, 10)
   t.equal(
     res2.logGroups[0].logGroupName,
@@ -128,6 +148,7 @@ test('can fetch cloudwatch streams', async (harness, t) => {
     logGroupName: 'test-group'
   }).promise()
   t.ok(res2.logStreams)
+  assert(res2.logStreams)
   t.equal(res2.logStreams.length, 1)
   t.equal(
     res2.logStreams[0].logStreamName,
@@ -151,6 +172,7 @@ test('can fetch two batches of streams', async (harness, t) => {
   }).promise()
   t.ok(res1.logStreams)
   t.ok(res1.nextToken)
+  assert(res1.logStreams)
   t.equal(res1.logStreams.length, 10)
   t.equal(
     res1.logStreams[0].logStreamName,
@@ -168,6 +190,7 @@ test('can fetch two batches of streams', async (harness, t) => {
   }).promise()
   t.ok(res2.logStreams)
   t.ok(res2.nextToken)
+  assert(res2.logStreams)
   t.equal(res2.logStreams.length, 10)
   t.equal(
     res2.logStreams[0].logStreamName,
@@ -200,6 +223,7 @@ test('can fetch log events', async (harness, t) => {
   }).promise()
   t.ok(res2)
   t.ok(res2.events)
+  assert(res2.events)
   t.equal(res2.events.length, 1)
   t.equal(
     res2.events[0].message,
@@ -235,8 +259,8 @@ test('can fetch uneven pages of log events', async (harness, t) => {
   } while (result.events && result.events.length !== 0)
 
   t.equal(pages.length, 13)
-  for (const [index, p] of pages.entries()) {
-    t.equal(p.length, index === 12 ? 4 : 8)
+  for (const pair of pages.entries()) {
+    t.equal(pair[1].length, pair[0] === 12 ? 4 : 8)
   }
 })
 
@@ -258,6 +282,7 @@ test('can fetch pages of log events', async (harness, t) => {
   t.ok(res1.events)
   t.ok(res1.nextBackwardToken)
   t.ok(res1.nextForwardToken)
+  assert(res1.events)
   t.equal(res1.events.length, 10)
   t.equal(
     res1.events[0].message,
@@ -278,7 +303,7 @@ test('can fetch pages of log events', async (harness, t) => {
     nextToken: res1.nextForwardToken
   }).promise()
   t.ok(res2.events)
-  t.equal(res2.events.length, 0)
+  t.equal(res2.events && res2.events.length, 0)
   t.ok(res2.nextBackwardToken)
   t.ok(res2.nextForwardToken)
 
@@ -289,6 +314,7 @@ test('can fetch pages of log events', async (harness, t) => {
     nextToken: res2.nextBackwardToken
   }).promise()
   t.ok(res3.events)
+  assert(res3.events)
   t.equal(res3.events.length, 10)
   t.ok(res3.nextBackwardToken)
   t.ok(res3.nextForwardToken)
@@ -311,6 +337,7 @@ test('can fetch pages of log events', async (harness, t) => {
     nextToken: res3.nextBackwardToken
   }).promise()
   t.ok(res4.events)
+  assert(res4.events)
   t.equal(res4.events.length, 10)
   t.ok(res4.nextBackwardToken)
   t.ok(res4.nextForwardToken)
@@ -333,6 +360,7 @@ test('can fetch pages of log events', async (harness, t) => {
     nextToken: res4.nextBackwardToken
   }).promise()
   t.ok(res5.events)
+  assert(res5.events)
   t.equal(res5.events.length, 10)
   t.ok(res5.nextBackwardToken)
   t.ok(res5.nextForwardToken)
@@ -355,6 +383,7 @@ test('can fetch pages of log events', async (harness, t) => {
     nextToken: res5.nextForwardToken
   }).promise()
   t.ok(res6.events)
+  assert(res6.events)
   t.equal(res6.events.length, 10)
   t.ok(res6.nextBackwardToken)
   t.ok(res6.nextForwardToken)
@@ -392,6 +421,7 @@ test('can cache groups to disk', async (harness, t) => {
   }).promise()
   t.ok(res1.logGroups)
   t.ok(res1.nextToken)
+  assert(res1.logGroups)
   t.equal(res1.logGroups.length, 10)
   t.equal(
     res1.logGroups[0].logGroupName,
@@ -426,6 +456,7 @@ test('can cache streams to disk', async (harness, t) => {
   }).promise()
   t.ok(res1.logStreams)
   t.ok(res1.nextToken)
+  assert(res1.logStreams)
   t.equal(res1.logStreams.length, 10)
   t.equal(
     res1.logStreams[0].logStreamName,
@@ -464,6 +495,7 @@ test('can cache events to disk', async (harness, t) => {
     limit: 10
   }).promise()
   t.ok(res2.events)
+  assert(res2.events)
   t.equal(res2.events.length, 10)
   t.equal(
     res2.events[0].message,
@@ -501,6 +533,7 @@ test('can fetch log events by startTime & endTime',
 
     const events = result.events
 
+    assert(events)
     t.equal(events.length, 10)
     t.equal(
       events[0].message,
@@ -512,6 +545,12 @@ test('can fetch log events by startTime & endTime',
     )
   })
 
+/**
+ * @param {FakeCloudwatchLogs} server
+ * @param {string} logGroupName
+ * @param {string} logStreamName
+ * @param {OutputLogEvent[]} events
+ */
 function populateEvents (
   server,
   logGroupName,
@@ -525,6 +564,11 @@ function populateEvents (
   server.populateEvents(logGroupName, logStreamName, events)
 }
 
+/**
+ * @param {FakeCloudwatchLogs} server
+ * @param {string} logGroupName
+ * @param {LogStream[]} streams
+ */
 function populateStreams (
   server,
   logGroupName,
@@ -534,6 +578,9 @@ function populateStreams (
   server.populateStreams(logGroupName, streams)
 }
 
+/**
+ * @param {number} [timeOffset]
+ */
 function makeLogEvent (timeOffset) {
   timeOffset = timeOffset || 0
   return {
@@ -543,6 +590,9 @@ function makeLogEvent (timeOffset) {
   }
 }
 
+/**
+ * @param {string} [name]
+ */
 function makeLogStream (name) {
   const logStreamName = name || `my-log-stream-${gCounter++}`
   return {
@@ -564,6 +614,9 @@ function makeLogStream (name) {
   }
 }
 
+/**
+ * @param {string} [name]
+ */
 function makeLogGroup (name) {
   const logGroupName = name || `my-log-group-${gCounter++}`
   return {
@@ -587,4 +640,12 @@ function cuuid () {
   return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
         str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
         str.slice(20)
+}
+
+/**
+ * @param {unknown} value
+ * @returns {asserts value}
+ */
+function assert (value) {
+  if (!value) throw new Error('value is falsey')
 }

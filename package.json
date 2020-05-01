@@ -4,7 +4,8 @@
   "description": "Setup a fake Cloudwatch logs server for testing purposes",
   "main": "build/src/index.js",
   "scripts": {
-    "test": "npm run lint -s && npm run unit-test",
+    "check": "npr tsc -p .",
+    "test": "npm run check && npm run lint -s && npm run unit-test",
     "unit-test": "node test/index.js",
     "lint": "npr standard",
     "type-coverage": "npr type-coverage --detail --strict --ignore-catch --at-least 100 --ignore-files=test/lambdas/hello.js"
@@ -12,7 +13,7 @@
   "dependencies": {},
   "binDependencies": {
     "type-coverage": "2.0.1",
-    "typescript": "3.7.2",
+    "typescript": "3.8.3",
     "standard": "14.3.3"
   },
   "devDependencies": {
