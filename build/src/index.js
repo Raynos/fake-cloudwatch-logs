@@ -466,8 +466,6 @@ const readdirP = util.promisify(fs.readdir);
         body
     ) {
         const req =  JSON.parse(body);
-        // TODO: req.startTime
-        // TODO: req.endTime
         // TODO: req.startFromHead
 
         const key = req.logGroupName + '~~' + req.logStreamName;

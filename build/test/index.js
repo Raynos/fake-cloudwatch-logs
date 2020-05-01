@@ -450,7 +450,7 @@ _testharness.test.call(void 0, 'can cache events to disk', async (harness, t) =>
 
     server.populateStreams('test-group', [
         makeLogStream('test-stream')
-    ])
+    ]);
 
     const cachePath = path.join(
         os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
@@ -514,26 +514,26 @@ _testharness.test.call(void 0, 'can fetch log events by startTime & endTime',
         );
     });
 
-function populateEvents (
+function populateEvents(
     server,
     logGroupName,
     logStreamName,
     events
 ) {
-    server.populateGroups([makeLogGroup(logGroupName)])
+    server.populateGroups([makeLogGroup(logGroupName)]);
     server.populateStreams(
         logGroupName, [makeLogStream(logStreamName)]
-    )
-    server.populateEvents(logGroupName, logStreamName, events)
+    );
+    server.populateEvents(logGroupName, logStreamName, events);
 }
 
-function populateStreams (
+function populateStreams(
     server,
     logGroupName,
     streams
 ) {
-    server.populateGroups([makeLogGroup(logGroupName)])
-    server.populateStreams(logGroupName, streams)
+    server.populateGroups([makeLogGroup(logGroupName)]);
+    server.populateStreams(logGroupName, streams);
 }
 
 function makeLogEvent(timeOffset) {
