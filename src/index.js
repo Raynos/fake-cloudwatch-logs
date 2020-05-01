@@ -6,25 +6,58 @@ const util = require('util')
 const path = require('path')
 const fs = require('fs')
 
+/**
+ * @typedef {
+      import('aws-sdk/clients/cloudwatchlogs').LogGroup
+ * } LogGroup
+ * @typedef {
+      import('aws-sdk/clients/cloudwatchlogs').LogStream
+ * } LogStream
+ * @typedef {
+      import('aws-sdk/clients/cloudwatchlogs').OutputLogEvent
+ * } OutputLogEvent
+ */
+
+/**
+ * @typedef {(err?: Error) => void} Callback
+ */
+
+/**
+ * @template T
+ * @typedef {import('./interfaces').Dictionary<T>} Dictionary
+ */
+
 const mkdirP = util.promisify(fs.mkdir)
 const writeFileP = util.promisify(fs.writeFile)
 const readFileP = util.promisify(fs.readFile)
 const readdirP = util.promisify(fs.readdir)
 
 class FakeCloudwatchLogs {
+  /**
+   * @param {{ port?: number }} options
+   */
   constructor (options) {
+    /** @type {http.Server | null} */
     this.httpServer = http.createServer()
     this.port = options.port || 0
     this.hostPort = null
     this.touchedCache = false
+    /** @type {string[]} */
     this.knownCaches = []
 
+    /** @type {LogGroup[]} */
     this.rawGroups = []
+    /** @type {Dictionary<LogStream[]>} */
     this.rawStreams = {}
+    /** @type {Dictionary<OutputLogEvent[]>} */
     this.rawEvents = {}
+    /** @type {Dictionary<{ offset: number }>} */
     this.tokens = {}
   }
 
+  /**
+   * @param {string} filePath
+   */
   async tryMkdir (filePath) {
     try {
       await mkdirP(filePath)
@@ -34,6 +67,10 @@ class FakeCloudwatchLogs {
     }
   }
 
+  /**
+   * @param {string} filePath
+   * @param {LogGroup[]} groups
+   */
   async cacheGroupsToDisk (filePath, groups) {
     this.touchedCache = true
     if (!this.knownCaches.includes(filePath)) {
@@ -51,6 +88,11 @@ class FakeCloudwatchLogs {
     )
   }
 
+  /**
+   * @param {string} filePath
+   * @param {string} groupName
+   * @param {LogStream[]} streams
+   */
   async cacheStreamsToDisk (filePath, groupName, streams) {
     this.touchedCache = true
     if (!this.knownCaches.includes(filePath)) {
@@ -71,6 +113,12 @@ class FakeCloudwatchLogs {
     )
   }
 
+  /**
+   * @param {string} filePath
+   * @param {string} groupName
+   * @param {string} streamName
+   * @param {OutputLogEvent[]} events
+   */
   async cacheEventsToDisk (
     filePath, groupName, streamName, events
   ) {
@@ -96,6 +144,9 @@ class FakeCloudwatchLogs {
     )
   }
 
+  /**
+   * @param {string} filePath
+   */
   async populateFromCache (filePath) {
     let groupsStr = null
     try {
@@ -166,10 +217,17 @@ class FakeCloudwatchLogs {
     }
   }
 
+  /**
+   * @param {LogGroup[]} groups
+   */
   populateGroups (groups) {
     this.rawGroups.push(...groups)
   }
 
+  /**
+   * @param {string} groupName
+   * @param {LogStream[]} streams
+   */
   populateStreams (groupName, streams) {
     let rawStreams = this.rawStreams[groupName]
     if (rawStreams === undefined) {
@@ -178,6 +236,11 @@ class FakeCloudwatchLogs {
     rawStreams.push(...streams)
   }
 
+  /**
+   * @param {string} groupName
+   * @param {string} streamName
+   * @param {OutputLogEvent[]} events
+   */
   populateEvents (
     groupName, streamName, events
   ) {
@@ -236,7 +299,9 @@ class FakeCloudwatchLogs {
     })
 
     const server = this.httpServer
-    await util.promisify((cb) => {
+    await util.promisify((
+      /** @type {Callback} */ cb
+    ) => {
       server.listen(this.port, cb)
     })()
 
@@ -258,6 +323,10 @@ class FakeCloudwatchLogs {
     }
   }
 
+  /**
+   * @param {http.IncomingMessage} req
+   * @param {http.ServerResponse} res
+   */
   handleServerRequest (req, res) {
     let body = ''
     req.on('data', (chunk) => {
@@ -303,6 +372,12 @@ class FakeCloudwatchLogs {
     })
   }
 
+  /**
+   * @template T
+   * @param {T[]} rawItems
+   * @param {string} [prevToken]
+   * @param {number} [limit]
+   */
   paginate (rawItems, prevToken, limit) {
     let offset = 0
     if (prevToken) {
@@ -327,6 +402,9 @@ class FakeCloudwatchLogs {
     return { items, nextToken }
   }
 
+  /**
+   * @param {string} body
+   */
   describeLogGroups (body) {
     const req = JSON.parse(body)
     // TODO: default sort
@@ -344,6 +422,9 @@ class FakeCloudwatchLogs {
     return res
   }
 
+  /**
+   * @param {string} body
+   */
   describeLogStreams (body) {
     const req = JSON.parse(body)
     // TODO: default sort
@@ -371,28 +452,30 @@ class FakeCloudwatchLogs {
   }
 
   /**
-     * getLogEvents() always returns the tail of the events
-     *
-     * nextBackwardToken returns another record further back in
-     * time.
-     *
-     * nextForwardToken returns a pointer to go forward in time
-     *
-     * So if you have 50 events and you get limit=10 return
-     *      {
-     *          events = 40-49
-     *          nextForwardToken = pointer => 50-59
-     *          nextBackwardToken = pointer => 30-39
-     *      }
-     *
-     * If someone queries with the backward token return
-     *
-     *      {
-     *          events = 30-39
-     *          nextForwardToken = pointer => 40-49
-     *          nextBackwardToken = pointer => 20-29
-     *      }
-     */
+   * getLogEvents() always returns the tail of the events
+   *
+   * nextBackwardToken returns another record further back in
+   * time.
+   *
+   * nextForwardToken returns a pointer to go forward in time
+   *
+   * So if you have 50 events and you get limit=10 return
+   *      {
+   *          events = 40-49
+   *          nextForwardToken = pointer => 50-59
+   *          nextBackwardToken = pointer => 30-39
+   *      }
+   *
+   * If someone queries with the backward token return
+   *
+   *      {
+   *          events = 30-39
+   *          nextForwardToken = pointer => 40-49
+   *          nextBackwardToken = pointer => 20-29
+   *      }
+   *
+   * @param {string} body
+   */
   getLogEvents (body) {
     const req = JSON.parse(body)
     // TODO: req.startFromHead
