@@ -39,7 +39,7 @@ async function main () {
   const rawGroups = fakeCW.rawGroups
   for (const g of rawGroups) {
     let streams
-    let allStreams = []
+    const allStreams = []
     do {
       console.log('fetching streams',
         g.logGroupName, streams && streams.nextToken)
@@ -65,7 +65,7 @@ async function main () {
       console.log('stream', stream.logStreamName)
 
       let events
-      let allEvents = []
+      const allEvents = []
       do {
         console.log('fetching events',
           groupName, stream.logStreamName,
