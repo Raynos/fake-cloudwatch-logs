@@ -7,21 +7,21 @@
     "check": "npr tsc -p .",
     "test": "npm run check && npm run lint -s && npm run unit-test",
     "unit-test": "node test/index.js",
-    "lint": "npr standard",
+    "lint": "npr tsdocstandard",
     "type-coverage": "npr type-coverage --detail --strict --ignore-catch --at-least 100 --ignore-files=test/lambdas/hello.js"
   },
   "dependencies": {},
   "binDependencies": {
     "type-coverage": "2.0.1",
     "typescript": "3.8.3",
-    "standard": "14.3.3"
+    "tsdocstandard": "15.2.0"
   },
   "devDependencies": {
     "@pre-bundled/rimraf": "3.0.0",
     "@pre-bundled/tape": "4.10.2",
     "@types/node": "12.0.2",
     "aws-sdk": "2.549.0",
-    "npm-bin-deps": "1.3.0",
+    "npm-bin-deps": "1.6.0",
     "tape-cluster": "3.2.1"
   },
   "author": "Raynos <raynos2@gmail.com>",
