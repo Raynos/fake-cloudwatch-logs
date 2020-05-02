@@ -12,7 +12,7 @@
   },
   "dependencies": {},
   "binDependencies": {
-    "type-coverage": "2.0.1",
+    "type-coverage": "2.4.3",
     "typescript": "3.8.3",
     "tsdocstandard": "15.2.1"
   },

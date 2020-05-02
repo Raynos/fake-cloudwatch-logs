@@ -166,6 +166,7 @@ class FakeCloudwatchLogs {
    * @returns {Promise<void>}
    */
   async populateFromCache (filePath) {
+    /** @type {string | null} */
     let groupsStr = null
     try {
       groupsStr = await readFileP(
@@ -185,6 +186,7 @@ class FakeCloudwatchLogs {
       this.populateGroups(groupsInfo.groups)
     }
 
+    /** @type {string[] | null} */
     let groupDirs = null
     try {
       groupDirs = await readdirP(
@@ -216,6 +218,7 @@ class FakeCloudwatchLogs {
       }
     }
 
+    /** @type {string[] | null} */
     let streamDirs = null
     try {
       streamDirs = await readdirP(
@@ -326,6 +329,21 @@ class FakeCloudwatchLogs {
   }
 
   /**
+   * @returns {void}
+   */
+  foo () {
+    y(JSON.parse('y'))
+
+    /**
+     * @param {string} s
+     * @returns {string}
+     */
+    function y (s) {
+      return s
+    }
+  }
+
+  /**
    * @returns {Promise<string>}
    */
   async bootstrap () {
@@ -333,7 +351,10 @@ class FakeCloudwatchLogs {
       throw new Error('cannot bootstrap closed server')
     }
 
-    this.httpServer.on('request', (req, res) => {
+    this.httpServer.on('request', (
+      /** @type {http.IncomingMessage} */req,
+      /** @type {http.ServerResponse} */res
+    ) => {
       this.handleServerRequest(req, res)
     })
 
@@ -386,6 +407,7 @@ class FakeCloudwatchLogs {
       const parts = (target || '').split('.')
       const lastPart = parts[parts.length - 1]
 
+      /** @type {unknown} */
       let respBody
       switch (lastPart) {
         case 'DescribeLogGroups':
@@ -439,6 +461,7 @@ class FakeCloudwatchLogs {
     const end = offset + (limit || 50)
     const items = rawItems.slice(offset, end)
 
+    /** @type {string | undefined} */
     let nextToken
     if (rawItems.length > end) {
       nextToken = cuuid()

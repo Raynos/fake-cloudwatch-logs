@@ -55,6 +55,7 @@ test('can fetch limit=10 groups', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
+  /** @type {LogGroup[]} */
   const logGroups = []
   for (let i = 0; i < 100; i++) {
     logGroups.push(makeLogGroup())
@@ -94,6 +95,7 @@ test('can fetch two batches of groups', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
+  /** @type {LogGroup[]} */
   const logGroups = []
   for (let i = 0; i < 30; i++) {
     logGroups.push(makeLogGroup())
@@ -164,6 +166,7 @@ test('can fetch two batches of streams', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
+  /** @type {LogStream[]} */
   const logStreams = []
   for (let i = 0; i < 30; i++) {
     logStreams.push(makeLogStream())
@@ -239,14 +242,17 @@ test('can fetch uneven pages of log events', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
+  /** @type {OutputLogEvent[]} */
   const logEvents = []
   for (let i = 0; i < 100; i++) {
     logEvents.push(makeLogEvent(100 - i))
   }
   populateEvents(server, 'test-group', 'test-stream', logEvents)
 
+  /** @type {Array<OutputLogEvent[]>} */
   const pages = []
 
+  /** @type {GetLogEventsResponse | null} */
   let result = null
   do {
     result = await cw.getLogEvents({
@@ -272,6 +278,7 @@ test('can fetch pages of log events', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
+  /** @type {OutputLogEvent[]} */
   const logEvents = []
   for (let i = 0; i < 50; i++) {
     logEvents.push(makeLogEvent(50 - i))
@@ -408,6 +415,7 @@ test('can cache groups to disk', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
+  /** @type {LogGroup[]} */
   const logGroups = []
   for (let i = 0; i < 30; i++) {
     logGroups.push(makeLogGroup())
@@ -441,6 +449,7 @@ test('can cache streams to disk', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
+  /** @type {LogStream[]} */
   const logStreams = []
   for (let i = 0; i < 30; i++) {
     logStreams.push(makeLogStream())
@@ -476,6 +485,7 @@ test('can cache events to disk', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
+  /** @type {OutputLogEvent[]} */
   const logEvents = []
   for (let i = 0; i < 30; i++) {
     logEvents.push(makeLogEvent(30 - i))
@@ -519,6 +529,7 @@ test('can fetch log events by startTime & endTime',
     const cw = harness.getCW()
     const server = harness.getServer()
 
+    /** @type {OutputLogEvent[]} */
     const logEvents = []
     for (let i = 0; i < 100; i++) {
       logEvents.push(makeLogEvent(100 - i))

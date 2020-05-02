@@ -173,7 +173,7 @@ interface TestHarness {
 
 declare namespace tapeCluster {}
 
-declare function tapeCluster<Options, Harness extends TestHarness>(
+declare function tapeCluster<Harness extends TestHarness, Options = {}>(
   tape: ((name: string, cb: TestCase) => void),
   harness: (new (opts?: Options) => Harness)
 ): TapeClusterFn<Options, Harness>
