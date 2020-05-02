@@ -1,40 +1,27 @@
 {
-    "compilerOptions": {
-      "rootDir": ".",
-      "outDir": "build",
-      "target": "ES2017",
-      "types": ["node"],
-      "lib": ["es2017"],
-      "module": "commonjs",
-      "moduleResolution": "node",
-      "resolveJsonModule": true,
-      "allowJs": true,
-      "importHelpers": true,
-      "alwaysStrict": true,
-      "sourceMap": true,
-      "forceConsistentCasingInFileNames": true,
-      "noFallthroughCasesInSwitch": true,
-      "noImplicitReturns": true,
-      "noUnusedLocals": true,
-      "noUnusedParameters": true,
-      "noImplicitAny": true,
-      "noImplicitThis": true,
-      "isolatedModules": true,
-      "noStrictGenericChecks": false,
-      "checkJs": false,
-      "strict": true,
-      "baseUrl": "./",
-      "paths": {
-        "@pre-bundled/rimraf": ["./types/pre-bundled__rimraf"],
-        "@pre-bundled/tape": ["./types/pre-bundled__tape"],
-        "*" : ["./types/*"]
-      },
-      "strictNullChecks": true,
-      "strictFunctionTypes": true
-    },
-    "include": [
-      "types/**/*.d.ts",
-      "src/**/*",
-      "test/**/*"
-    ]
-  }
+  "compilerOptions": {
+    "types": ["node"],
+    "target": "es2018",
+    "lib": ["es2018"],
+    "noEmit": true,
+    "module": "commonjs",
+    "allowJs": true,
+    "checkJs": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strict": true,
+    "baseUrl": "./",
+    "paths": {
+      "@pre-bundled/rimraf": ["./types/pre-bundled__rimraf"],
+      "@pre-bundled/tape": ["./types/pre-bundled__tape"],
+      "*" : ["./types/*"]
+    }
+  },
+  "include": [
+    "types/**/*.d.ts",
+    "src/*.js",
+    "test/**/*.js"
+  ]
+}

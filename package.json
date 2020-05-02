@@ -4,40 +4,30 @@
   "description": "Setup a fake Cloudwatch logs server for testing purposes",
   "main": "build/src/index.js",
   "scripts": {
-    "test": "npm run build && npm run tslint -s && npm run cover -s && npm run check -s",
-    "unit-test": "node build/test/index.js",
-    "build-only": "rm -r build && npr sucrase -p .",
-    "build": "npr tsc -p . && npm run build-only",
-    "build:watch": "npr onchange '{src,test}/**/*.{ts,js,txt}' -- npm run build-only -s",
-    "tslint": "npr tslint -t stylish -p .",
-    "cover": "npr nyc --exclude build/test/**/*.js --reporter=html -- node ./build/test/index.js && npr nyc report",
-    "check": "npm run check-cover -s && npm run type-coverage -s && npm run lint-types -s && npm run verify -s",
-    "verify": "npm run verify-included -s",
-    "lint-types": "command ls ./types/ | xargs -I{} sh -c 'npr dtslint ./types/{} && echo linted types/{}'",
-    "type-coverage": "npr type-coverage --detail --strict --ignore-catch --at-least 100 --ignore-files=test/lambdas/hello.js",
-    "check-cover": "npr nyc check-coverage --branches=25 --lines=50 --functions=50",
-    "verify-included": "bash scripts/verify-included.sh",
-    "view-cover": "npr opn ./coverage/index.html"
+    "check": "npr tsc -p .",
+    "test": "npm run check && npm run lint && npm run unit-test",
+    "unit-test": "node test/index.js",
+    "lint": "npr tsdocstandard",
+    "type-coverage": "npr type-coverage --detail --strict --ignore-catch --at-least 100 --ignore-files=test/lambdas/hello.js"
   },
   "dependencies": {},
   "binDependencies": {
-    "dtslint": "2.0.2",
-    "nyc": "13.3.0",
-    "onchange": "6.1.0",
-    "opn": "1.0.1",
-    "sucrase-raynos": "3.12.1-dev1",
-    "tslint": "5.20.1",
-    "tslint-microsoft-contrib": "6.2.0",
-    "type-coverage": "2.0.1",
-    "typescript": "3.7.2"
+    "type-coverage": "2.4.3",
+    "typescript": "3.8.3",
+    "tsdocstandard": "15.2.1"
   },
   "devDependencies": {
     "@pre-bundled/rimraf": "3.0.0",
     "@pre-bundled/tape": "4.10.2",
     "@types/node": "12.0.2",
     "aws-sdk": "2.549.0",
-    "npm-bin-deps": "1.3.0",
+    "npm-bin-deps": "1.6.0",
     "tape-cluster": "3.2.1"
+  },
+  "tsdocstandard": {
+    "ignore": [
+      "scripts/cache-from-prod.js"
+    ]
   },
   "author": "Raynos <raynos2@gmail.com>",
   "repository": "git://github.com/Raynos/fake-cloudwatch-logs.git",
