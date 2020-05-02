@@ -1,6 +1,6 @@
 {
   "name": "fake-cloudwatch-logs",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Setup a fake Cloudwatch logs server for testing purposes",
   "main": "src/index.js",
   "scripts": {
