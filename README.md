@@ -98,7 +98,7 @@ Here is an example snippet from the script
 const path = require('path')
 const AWS = require('aws-sdk')
 const FakeCloudWatchLogs =
-  require('../build/src/index.js').FakeCloudwatchLogs
+  require('../src/index.js').FakeCloudwatchLogs
 
 async function main () {
   const fakeCW = new FakeCloudWatchLogs()
