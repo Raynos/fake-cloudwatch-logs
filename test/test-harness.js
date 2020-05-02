@@ -14,14 +14,25 @@ const { FakeCloudwatchLogs } = require('../src/index.js')
  * @typedef {(err?: Error) => void} Callback
  */
 
+/**
+ * @class
+ */
 class TestHarness {
+  /**
+   * @constructor
+   */
   constructor () {
+    /** @type {FakeCloudwatchLogs} */
     this.cwServer = new FakeCloudwatchLogs({
       port: 0
     })
+    /** @type {AWS.CloudWatchLogs | null} */
     this.cw = null
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async bootstrap () {
     const hostPort = await this.cwServer.bootstrap()
 
@@ -34,15 +45,24 @@ class TestHarness {
     })
   }
 
+  /**
+   * @returns {FakeCloudwatchLogs}
+   */
   getServer () {
     return this.cwServer
   }
 
+  /**
+   * @returns {AWS.CloudWatchLogs}
+   */
   getCW () {
     if (!this.cw) throw new Error('not bootstrapped yet')
     return this.cw
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async close () {
     await this.cwServer.close()
 

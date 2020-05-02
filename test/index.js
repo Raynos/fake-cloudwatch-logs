@@ -10,14 +10,18 @@ const path = require('path')
  * @typedef {
       import('../src/index.js').FakeCloudwatchLogs
  * } FakeCloudwatchLogs
- *
  * @typedef {
-      import('aws-sdk/clients/cloudwatchlogs').OutputLogEvent
+      import('aws-sdk').CloudWatchLogs.OutputLogEvent
  * } OutputLogEvent
- *
  * @typedef {
-      import('aws-sdk/clients/cloudwatchlogs').LogStream
+      import('aws-sdk').CloudWatchLogs.LogStream
  * } LogStream
+ * @typedef {
+      import('aws-sdk').CloudWatchLogs.LogGroup
+ * } LogGroup
+ * @typedef {
+      import('aws-sdk').CloudWatchLogs.GetLogEventsResponse
+ * } GetLogEventsResponse
  */
 
 const { test } = require('./test-harness.js')
@@ -550,6 +554,7 @@ test('can fetch log events by startTime & endTime',
  * @param {string} logGroupName
  * @param {string} logStreamName
  * @param {OutputLogEvent[]} events
+ * @returns {void}
  */
 function populateEvents (
   server,
@@ -568,6 +573,7 @@ function populateEvents (
  * @param {FakeCloudwatchLogs} server
  * @param {string} logGroupName
  * @param {LogStream[]} streams
+ * @returns {void}
  */
 function populateStreams (
   server,
@@ -580,6 +586,7 @@ function populateStreams (
 
 /**
  * @param {number} [timeOffset]
+ * @returns {OutputLogEvent}
  */
 function makeLogEvent (timeOffset) {
   timeOffset = timeOffset || 0
@@ -592,6 +599,7 @@ function makeLogEvent (timeOffset) {
 
 /**
  * @param {string} [name]
+ * @returns {LogStream}
  */
 function makeLogStream (name) {
   const logStreamName = name || `my-log-stream-${gCounter++}`
@@ -616,6 +624,7 @@ function makeLogStream (name) {
 
 /**
  * @param {string} [name]
+ * @returns {LogGroup}
  */
 function makeLogGroup (name) {
   const logGroupName = name || `my-log-group-${gCounter++}`
@@ -629,17 +638,18 @@ function makeLogGroup (name) {
   }
 }
 
+/**
+ * @returns {string}
+ */
 function cuuid () {
   const str = (
     Date.now().toString(16) +
-        // tslint:disable-next-line: insecure-random
-        Math.random().toString(16).slice(2) +
-        // tslint:disable-next-line: insecure-random
-        Math.random().toString(16).slice(2)
+    Math.random().toString(16).slice(2) +
+    Math.random().toString(16).slice(2)
   ).slice(0, 32)
   return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
-        str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
-        str.slice(20)
+    str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
+    str.slice(20)
 }
 
 /**

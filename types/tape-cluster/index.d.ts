@@ -1,8 +1,6 @@
 // TypeScript Version: 3.0
 
-interface TestCase {
-  (test: Test): void;
-}
+type TestCase = (test: Test) => Promise<void> | undefined
 
 interface Test {
   /**
@@ -137,39 +135,40 @@ interface Test {
   comment(msg: string): void;
 }
 
-interface tapeClusterTestCase<Harness> {
-  (harness: Harness, test: Test): void;
-}
+/**
+ * https://github.com/typescript-eslint/typescript-eslint/pull/1960
+ */
+type TapeClusterTestCase<Harness> = (
+  harness: Harness, test: Test
+// eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+) => Promise<void> | void
 
-interface tapeClusterFn<Options, Harness> {
-  (name: string): void
-  (name: string, cb: tapeClusterTestCase<Harness>): void
+interface TapeClusterFn<Options, Harness> {
+  (name: string, cb?: TapeClusterTestCase<Harness>): void;
   (
     name: string,
     opts: Options,
-    cb: tapeClusterTestCase<Harness>
-  ): void
+    cb: TapeClusterTestCase<Harness>
+  ): void;
 
-  only(name: string): void
-  only(name: string, cb: tapeClusterTestCase<Harness>): void
+  only(name: string, cb?: TapeClusterTestCase<Harness>): void;
   only(
     name: string,
     opts: Options,
-    cb: tapeClusterTestCase<Harness>
-  ): void
+    cb: TapeClusterTestCase<Harness>
+  ): void;
 
-  skip(name: string): void
-  skip(name: string, cb: tapeClusterTestCase<Harness>): void
+  skip(name: string, cb?: TapeClusterTestCase<Harness>): void;
   skip(
     name: string,
     opts: Options,
-    cb: tapeClusterTestCase<Harness>
-  ): void
+    cb: TapeClusterTestCase<Harness>
+  ): void;
 }
 
 interface TestHarness {
-  bootstrap(): Promise<void>
-  close(): Promise<void>
+  bootstrap(): Promise<void>;
+  close(): Promise<void>;
 }
 
 declare namespace tapeCluster {}
@@ -177,6 +176,6 @@ declare namespace tapeCluster {}
 declare function tapeCluster<Options, Harness extends TestHarness>(
   tape: ((name: string, cb: TestCase) => void),
   harness: (new (opts?: Options) => Harness)
-): tapeClusterFn<Options, Harness>
+): TapeClusterFn<Options, Harness>
 
 export = tapeCluster

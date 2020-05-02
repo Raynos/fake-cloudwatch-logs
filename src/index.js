@@ -7,15 +7,18 @@ const path = require('path')
 const fs = require('fs')
 
 /**
+ * @typedef {import('aws-sdk').CloudWatchLogs.LogGroup} LogGroup
+ * @typedef {import('aws-sdk').CloudWatchLogs.LogStream} LogStream
+ * @typedef {import('aws-sdk').CloudWatchLogs.OutputLogEvent} OutputLogEvent
  * @typedef {
-      import('aws-sdk/clients/cloudwatchlogs').LogGroup
- * } LogGroup
+    import('aws-sdk').CloudWatchLogs.DescribeLogGroupsRequest
+ * } DescribeLogGroupsRequest
  * @typedef {
-      import('aws-sdk/clients/cloudwatchlogs').LogStream
- * } LogStream
+      import('aws-sdk').CloudWatchLogs.DescribeLogStreamsRequest
+ * } DescribeLogStreamsRequest
  * @typedef {
-      import('aws-sdk/clients/cloudwatchlogs').OutputLogEvent
- * } OutputLogEvent
+      import('aws-sdk').CloudWatchLogs.GetLogEventsRequest
+ * } GetLogEventsRequest
  */
 
 /**
@@ -32,6 +35,9 @@ const writeFileP = util.promisify(fs.writeFile)
 const readFileP = util.promisify(fs.readFile)
 const readdirP = util.promisify(fs.readdir)
 
+/**
+ * @class
+ */
 class FakeCloudwatchLogs {
   /**
    * @param {{ port?: number }} options
@@ -39,8 +45,11 @@ class FakeCloudwatchLogs {
   constructor (options) {
     /** @type {http.Server | null} */
     this.httpServer = http.createServer()
+    /** @type {number} */
     this.port = options.port || 0
+    /** @type {string | null} */
     this.hostPort = null
+    /** @type {boolean} */
     this.touchedCache = false
     /** @type {string[]} */
     this.knownCaches = []
@@ -57,12 +66,17 @@ class FakeCloudwatchLogs {
 
   /**
    * @param {string} filePath
+   * @returns {Promise<void>}
    */
   async tryMkdir (filePath) {
     try {
       await mkdirP(filePath)
     } catch (maybeErr) {
-      const err = maybeErr
+      /**
+       * https://github.com/typescript-eslint/typescript-eslint/issues/1943
+       */
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
       if (err.code !== 'EEXIST') throw err
     }
   }
@@ -70,6 +84,7 @@ class FakeCloudwatchLogs {
   /**
    * @param {string} filePath
    * @param {LogGroup[]} groups
+   * @returns {Promise<void>}
    */
   async cacheGroupsToDisk (filePath, groups) {
     this.touchedCache = true
@@ -92,6 +107,7 @@ class FakeCloudwatchLogs {
    * @param {string} filePath
    * @param {string} groupName
    * @param {LogStream[]} streams
+   * @returns {Promise<void>}
    */
   async cacheStreamsToDisk (filePath, groupName, streams) {
     this.touchedCache = true
@@ -118,6 +134,7 @@ class FakeCloudwatchLogs {
    * @param {string} groupName
    * @param {string} streamName
    * @param {OutputLogEvent[]} events
+   * @returns {Promise<void>}
    */
   async cacheEventsToDisk (
     filePath, groupName, streamName, events
@@ -146,6 +163,7 @@ class FakeCloudwatchLogs {
 
   /**
    * @param {string} filePath
+   * @returns {Promise<void>}
    */
   async populateFromCache (filePath) {
     let groupsStr = null
@@ -154,12 +172,16 @@ class FakeCloudwatchLogs {
         path.join(filePath, 'groups.json'), 'utf8'
       )
     } catch (maybeErr) {
-      const err = maybeErr
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
       if (err.code !== 'ENOENT') throw err
     }
 
     if (groupsStr) {
-      const groupsInfo = JSON.parse(groupsStr)
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const groupsInfo = /** @type {{
+        groups: LogGroup[]
+      }} */ (JSON.parse(groupsStr))
       this.populateGroups(groupsInfo.groups)
     }
 
@@ -169,7 +191,8 @@ class FakeCloudwatchLogs {
         path.join(filePath, 'groups')
       )
     } catch (maybeErr) {
-      const err = maybeErr
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
       if (err.code !== 'ENOENT') throw err
     }
 
@@ -181,7 +204,11 @@ class FakeCloudwatchLogs {
           groupName,
           'streams.json'
         ), 'utf8')
-        const streamsInfo = JSON.parse(streamsStr)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const streamsInfo = /** @type {{
+          groupName: string,
+          streams: LogStream[]
+        }} */ (JSON.parse(streamsStr))
         this.populateStreams(
           streamsInfo.groupName,
           streamsInfo.streams
@@ -195,7 +222,8 @@ class FakeCloudwatchLogs {
         path.join(filePath, 'streams')
       )
     } catch (maybeErr) {
-      const err = maybeErr
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
       if (err.code !== 'ENOENT') throw err
     }
 
@@ -207,7 +235,12 @@ class FakeCloudwatchLogs {
           dirName,
           'events.json'
         ), 'utf8')
-        const eventsinfo = JSON.parse(eventsStr)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const eventsinfo = /** @type {{
+          groupName: string,
+          streamName: string,
+          events: OutputLogEvent[]
+        }} */ (JSON.parse(eventsStr))
         this.populateEvents(
           eventsinfo.groupName,
           eventsinfo.streamName,
@@ -219,6 +252,7 @@ class FakeCloudwatchLogs {
 
   /**
    * @param {LogGroup[]} groups
+   * @returns {void}
    */
   populateGroups (groups) {
     this.rawGroups.push(...groups)
@@ -227,6 +261,7 @@ class FakeCloudwatchLogs {
   /**
    * @param {string} groupName
    * @param {LogStream[]} streams
+   * @returns {void}
    */
   populateStreams (groupName, streams) {
     let rawStreams = this.rawStreams[groupName]
@@ -240,6 +275,7 @@ class FakeCloudwatchLogs {
    * @param {string} groupName
    * @param {string} streamName
    * @param {OutputLogEvent[]} events
+   * @returns {void}
    */
   populateEvents (
     groupName, streamName, events
@@ -289,6 +325,9 @@ class FakeCloudwatchLogs {
     stream.firstEventTimestamp = youngestTs
   }
 
+  /**
+   * @returns {Promise<string>}
+   */
   async bootstrap () {
     if (!this.httpServer) {
       throw new Error('cannot bootstrap closed server')
@@ -314,6 +353,9 @@ class FakeCloudwatchLogs {
     return this.hostPort
   }
 
+  /**
+   * @returns {Promise<void>}
+   */
   async close () {
     if (this.httpServer) {
       await util.promisify(
@@ -326,10 +368,13 @@ class FakeCloudwatchLogs {
   /**
    * @param {http.IncomingMessage} req
    * @param {http.ServerResponse} res
+   * @returns {void}
    */
   handleServerRequest (req, res) {
     let body = ''
-    req.on('data', (chunk) => {
+    req.on('data', (
+      /** @type {string} */ chunk
+    ) => {
       body += chunk.toString()
     })
     req.on('end', () => {
@@ -377,12 +422,13 @@ class FakeCloudwatchLogs {
    * @param {T[]} rawItems
    * @param {string} [prevToken]
    * @param {number} [limit]
+   * @returns {{ items: T[], nextToken?: string }}
    */
   paginate (rawItems, prevToken, limit) {
     let offset = 0
     if (prevToken) {
       const tokenInfo = this.tokens[prevToken]
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this.tokens[prevToken]
       if (!tokenInfo) {
         throw new Error(`invalid nextToken: ${prevToken}`)
@@ -404,9 +450,13 @@ class FakeCloudwatchLogs {
 
   /**
    * @param {string} body
+   * @returns {import('aws-sdk').CloudWatchLogs.DescribeLogGroupsResponse}
    */
   describeLogGroups (body) {
-    const req = JSON.parse(body)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const req = /** @type {
+      DescribeLogGroupsRequest
+    } */ (JSON.parse(body))
     // TODO: default sort
     // TODO: req.logGroupNamePrefix
 
@@ -424,9 +474,13 @@ class FakeCloudwatchLogs {
 
   /**
    * @param {string} body
+   * @returns {import('aws-sdk').CloudWatchLogs.DescribeLogStreamsResponse}
    */
   describeLogStreams (body) {
-    const req = JSON.parse(body)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const req = /** @type {
+      DescribeLogStreamsRequest
+    } */ (JSON.parse(body))
     // TODO: default sort
     // TODO: req.logStreamNamePrefix
     // TODO: req.descending
@@ -475,9 +529,13 @@ class FakeCloudwatchLogs {
    *      }
    *
    * @param {string} body
+   * @returns {import('aws-sdk').CloudWatchLogs.GetLogEventsResponse}
    */
   getLogEvents (body) {
-    const req = JSON.parse(body)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const req = /** @type {
+      GetLogEventsRequest
+    } */ (JSON.parse(body))
     // TODO: req.startFromHead
 
     const key = req.logGroupName + '~~' + req.logStreamName
@@ -494,14 +552,14 @@ class FakeCloudwatchLogs {
       events = events.filter((e) => {
         if (!e.timestamp) return false
         return startTime <= e.timestamp &&
-                    endTime > e.timestamp
+          endTime > e.timestamp
       })
     }
 
     let offset = 0
     if (req.nextToken) {
       const tokenInfo = this.tokens[req.nextToken]
-      // tslint:disable-next-line: no-dynamic-delete
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete this.tokens[req.nextToken]
       if (!tokenInfo) {
         throw new Error(`invalid nextToken: ${req.nextToken}`)
@@ -545,15 +603,18 @@ class FakeCloudwatchLogs {
 }
 exports.FakeCloudwatchLogs = FakeCloudwatchLogs
 
+/**
+ * @returns {string}
+ */
 function cuuid () {
   const str = (
     Date.now().toString(16) +
-        // tslint:disable-next-line: insecure-random
-        Math.random().toString(16).slice(2) +
-        // tslint:disable-next-line: insecure-random
-        Math.random().toString(16).slice(2)
+    // tslint:disable-next-line: insecure-random
+    Math.random().toString(16).slice(2) +
+    // tslint:disable-next-line: insecure-random
+    Math.random().toString(16).slice(2)
   ).slice(0, 32)
   return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
-        str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
-        str.slice(20)
+    str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
+    str.slice(20)
 }
