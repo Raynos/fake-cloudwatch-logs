@@ -28,9 +28,6 @@ const writeFileP = util.promisify(fs.writeFile)
 const readFileP = util.promisify(fs.readFile)
 const readdirP = util.promisify(fs.readdir)
 
-/**
- * @class
- */
 class FakeCloudwatchLogs {
   /**
    * @param {{ port?: number }} options
@@ -73,6 +70,16 @@ class FakeCloudwatchLogs {
       if (err.code !== 'EEXIST') throw err
     }
   }
+
+  /**
+   * TODO: Add profile & region to cache*()
+   * TODO: Add fetchAndCache()
+   * TODO: Add getAllRegions()
+   * TODO: Add profile & region to populate*
+   *
+   * TODO: Update read paths, add `_getProfileRegion()`
+   *
+   */
 
   /**
    * @param {string} filePath
@@ -321,24 +328,7 @@ class FakeCloudwatchLogs {
     stream.firstEventTimestamp = youngestTs
   }
 
-  /**
-   * @returns {void}
-   */
-  foo () {
-    y(JSON.parse('y'))
-
-    /**
-     * @param {string} s
-     * @returns {string}
-     */
-    function y (s) {
-      return s
-    }
-  }
-
-  /**
-   * @returns {Promise<string>}
-   */
+  /** @returns {Promise<string>} */
   async bootstrap () {
     if (!this.httpServer) {
       throw new Error('cannot bootstrap closed server')
@@ -352,9 +342,7 @@ class FakeCloudwatchLogs {
     })
 
     const server = this.httpServer
-    await util.promisify((
-      /** @type {Callback} */ cb
-    ) => {
+    await util.promisify((/** @type {Callback} */ cb) => {
       server.listen(this.port, cb)
     })()
 
@@ -367,9 +355,7 @@ class FakeCloudwatchLogs {
     return this.hostPort
   }
 
-  /**
-   * @returns {Promise<void>}
-   */
+  /** @returns {Promise<void>} */
   async close () {
     if (this.httpServer) {
       await util.promisify(
@@ -480,7 +466,6 @@ class FakeCloudwatchLogs {
       this.rawGroups, req.nextToken, req.limit
     )
 
-    // tslint:disable-next-line: no-unnecessary-local-variable
     const res = {
       logGroups: page.items,
       nextToken: page.nextToken
@@ -513,7 +498,6 @@ class FakeCloudwatchLogs {
       req.limit
     )
 
-    // tslint:disable-next-line: no-unnecessary-local-variable
     const res = {
       logStreams: page.items,
       nextToken: page.nextToken
@@ -605,7 +589,6 @@ class FakeCloudwatchLogs {
 
     const items = events.slice(start, end)
 
-    // tslint:disable-next-line: no-unnecessary-local-variable
     const res = {
       events: items,
       nextForwardToken,
@@ -625,9 +608,7 @@ exports.FakeCloudwatchLogs = FakeCloudwatchLogs
 function cuuid () {
   const str = (
     Date.now().toString(16) +
-    // tslint:disable-next-line: insecure-random
     Math.random().toString(16).slice(2) +
-    // tslint:disable-next-line: insecure-random
     Math.random().toString(16).slice(2)
   ).slice(0, 32)
   return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
