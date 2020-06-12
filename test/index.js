@@ -7,8 +7,8 @@ const os = require('os')
 const path = require('path')
 
 /**
- * @typedef {
-      import('../src/index.js').FakeCloudwatchLogs
+   @typedef {
+      import('../index.js').FakeCloudwatchLogs
  * } FakeCloudwatchLogs
  * @typedef {
       import('aws-sdk').CloudWatchLogs.OutputLogEvent

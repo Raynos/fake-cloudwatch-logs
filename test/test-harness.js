@@ -8,7 +8,7 @@ const rimraf = require('@pre-bundled/rimraf')
 const util = require('util')
 const tapeCluster = require('tape-cluster')
 
-const { FakeCloudwatchLogs } = require('../src/index.js')
+const { FakeCloudwatchLogs } = require('../index.js')
 
 /**
  * @typedef {(err?: Error) => void} Callback

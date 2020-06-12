@@ -2,7 +2,7 @@
   "name": "fake-cloudwatch-logs",
   "version": "1.4.1",
   "description": "Setup a fake Cloudwatch logs server for testing purposes",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
     "check": "npr tsc -p .",
     "test": "npm run check && npm run lint && node test/index.js && npm run type-coverage",

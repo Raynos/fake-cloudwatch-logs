@@ -3,7 +3,7 @@
 const path = require('path')
 const AWS = require('aws-sdk')
 const FakeCloudWatchLogs =
-  require('../src/index.js').FakeCloudwatchLogs
+  require('../index.js').FakeCloudwatchLogs
 
 async function main () {
   const fakeCW = new FakeCloudWatchLogs()
