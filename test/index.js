@@ -1,8 +1,6 @@
 // @ts-check
 'use strict'
 
-/* eslint-disable camelcase */
-
 const os = require('os')
 const path = require('path')
 
