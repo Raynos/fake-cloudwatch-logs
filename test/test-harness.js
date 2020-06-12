@@ -7,6 +7,8 @@ const tape = require('@pre-bundled/tape')
 const rimraf = require('@pre-bundled/rimraf')
 const util = require('util')
 const tapeCluster = require('tape-cluster')
+const path = require('path')
+const os = require('os')
 
 const { FakeCloudwatchLogs } = require('../index.js')
 
@@ -51,6 +53,13 @@ class TestHarness {
   /** @returns {FakeCloudwatchLogs} */
   getServer () {
     return this.cwServer
+  }
+
+  /** @returns {string} */
+  getCachePath () {
+    return path.join(
+      os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
+    )
   }
 
   /** @returns {AWS.CloudWatchLogs} */
@@ -129,3 +138,17 @@ class TestHarness {
 exports.TestHarness = TestHarness
 
 exports.test = tapeCluster(tape, TestHarness)
+
+/**
+ * @returns {string}
+ */
+function cuuid () {
+  const str = (
+    Date.now().toString(16) +
+    Math.random().toString(16).slice(2) +
+    Math.random().toString(16).slice(2)
+  ).slice(0, 32)
+  return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
+    str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
+    str.slice(20)
+}

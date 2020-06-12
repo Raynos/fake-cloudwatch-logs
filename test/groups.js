@@ -107,6 +107,35 @@ test('can fetch two batches of groups', async (harness, t) => {
   )
 })
 
+test('can cache groups to disk', async (harness, t) => {
+  const cw = harness.getCW()
+  const server = harness.getServer()
+
+  const logGroups = [...Array(30).keys()].map((_) => {
+    return harness.makeLogGroup()
+  })
+
+  const cachePath = harness.getCachePath()
+  await server.cacheGroupsToDisk(cachePath, logGroups)
+  await server.populateFromCache(cachePath)
+
+  const res1 = await cw.describeLogGroups({
+    limit: 10
+  }).promise()
+  t.ok(res1.logGroups)
+  t.ok(res1.nextToken)
+  assert(res1.logGroups)
+  t.equal(res1.logGroups.length, 10)
+  t.equal(
+    res1.logGroups[0].logGroupName,
+        `my-log-group-${harness.gCounter - 30}`
+  )
+  t.equal(
+    res1.logGroups[9].logGroupName,
+        `my-log-group-${harness.gCounter - 21}`
+  )
+})
+
 /**
  * @param {unknown} value
  * @returns {asserts value}

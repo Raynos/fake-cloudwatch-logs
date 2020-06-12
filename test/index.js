@@ -1,22 +1,13 @@
 // @ts-check
 'use strict'
 
-const os = require('os')
-const path = require('path')
-
 /**
    @typedef {
-      import('../index.js').FakeCloudwatchLogs
- * } FakeCloudwatchLogs
- * @typedef {
       import('aws-sdk').CloudWatchLogs.OutputLogEvent
  * } OutputLogEvent
  * @typedef {
       import('aws-sdk').CloudWatchLogs.LogStream
  * } LogStream
- * @typedef {
-      import('aws-sdk').CloudWatchLogs.LogGroup
- * } LogGroup
  * @typedef {
       import('aws-sdk').CloudWatchLogs.GetLogEventsResponse
  * } GetLogEventsResponse
@@ -296,40 +287,6 @@ test('can fetch pages of log events', async (harness, t) => {
   t.ok(ts6Zero && ts6Nine && ts6Zero < ts6Nine)
 })
 
-test('can cache groups to disk', async (harness, t) => {
-  const cw = harness.getCW()
-  const server = harness.getServer()
-
-  /** @type {LogGroup[]} */
-  const logGroups = []
-  for (let i = 0; i < 30; i++) {
-    logGroups.push(harness.makeLogGroup())
-  }
-
-  const cachePath = path.join(
-    os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
-  )
-
-  await server.cacheGroupsToDisk(cachePath, logGroups)
-  await server.populateFromCache(cachePath)
-
-  const res1 = await cw.describeLogGroups({
-    limit: 10
-  }).promise()
-  t.ok(res1.logGroups)
-  t.ok(res1.nextToken)
-  assert(res1.logGroups)
-  t.equal(res1.logGroups.length, 10)
-  t.equal(
-    res1.logGroups[0].logGroupName,
-        `my-log-group-${harness.gCounter - 30}`
-  )
-  t.equal(
-    res1.logGroups[9].logGroupName,
-        `my-log-group-${harness.gCounter - 21}`
-  )
-})
-
 test('can cache streams to disk', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
@@ -340,9 +297,7 @@ test('can cache streams to disk', async (harness, t) => {
     logStreams.push(harness.makeLogStream())
   }
 
-  const cachePath = path.join(
-    os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
-  )
+  const cachePath = harness.getCachePath()
   await server.cacheStreamsToDisk(
     cachePath, 'test-group', logStreams
   )
@@ -380,9 +335,7 @@ test('can cache events to disk', async (harness, t) => {
     harness.makeLogStream('test-stream')
   ])
 
-  const cachePath = path.join(
-    os.tmpdir(), `test-fake-cloudwatch-logs-${cuuid()}`
-  )
+  const cachePath = harness.getCachePath()
   await server.cacheEventsToDisk(
     cachePath, 'test-group', 'test-stream', logEvents
   )
@@ -442,7 +395,8 @@ test('can fetch log events by startTime & endTime',
       events[9].message,
             `[INFO]: A log message: ${harness.gCounter - 71}`
     )
-  })
+  }
+)
 
 /**
  * @param {import('./test-harness').TestHarness} harness
@@ -476,20 +430,6 @@ function populateStreams (
   const server = harness.getServer()
   server.populateGroups([harness.makeLogGroup(logGroupName)])
   server.populateStreams(logGroupName, streams)
-}
-
-/**
- * @returns {string}
- */
-function cuuid () {
-  const str = (
-    Date.now().toString(16) +
-    Math.random().toString(16).slice(2) +
-    Math.random().toString(16).slice(2)
-  ).slice(0, 32)
-  return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
-    str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
-    str.slice(20)
 }
 
 /**
