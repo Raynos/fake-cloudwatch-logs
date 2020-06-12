@@ -12,15 +12,18 @@ const { FakeCloudwatchLogs } = require('../index.js')
 
 /**
  * @typedef {(err?: Error) => void} Callback
+   @typedef {
+      import('aws-sdk').CloudWatchLogs.OutputLogEvent
+ * } OutputLogEvent
+ * @typedef {
+      import('aws-sdk').CloudWatchLogs.LogStream
+ * } LogStream
+ * @typedef {
+       import('aws-sdk').CloudWatchLogs.LogGroup
+ * } LogGroup
  */
 
-/**
- * @class
- */
 class TestHarness {
-  /**
-   * @constructor
-   */
   constructor () {
     /** @type {FakeCloudwatchLogs} */
     this.cwServer = new FakeCloudwatchLogs({
@@ -28,11 +31,11 @@ class TestHarness {
     })
     /** @type {AWS.CloudWatchLogs | null} */
     this.cw = null
+    /** @type {number} */
+    this.gCounter = 0
   }
 
-  /**
-   * @returns {Promise<void>}
-   */
+  /** @returns {Promise<void>} */
   async bootstrap () {
     const hostPort = await this.cwServer.bootstrap()
 
@@ -45,24 +48,18 @@ class TestHarness {
     })
   }
 
-  /**
-   * @returns {FakeCloudwatchLogs}
-   */
+  /** @returns {FakeCloudwatchLogs} */
   getServer () {
     return this.cwServer
   }
 
-  /**
-   * @returns {AWS.CloudWatchLogs}
-   */
+  /** @returns {AWS.CloudWatchLogs} */
   getCW () {
     if (!this.cw) throw new Error('not bootstrapped yet')
     return this.cw
   }
 
-  /**
-   * @returns {Promise<void>}
-   */
+  /** @returns {Promise<void>} */
   async close () {
     await this.cwServer.close()
 
@@ -74,6 +71,58 @@ class TestHarness {
           disableGlob: true
         }, cb)
       })()
+    }
+  }
+
+  /**
+   * @param {string} [name]
+   * @returns {LogGroup}
+   */
+  makeLogGroup (name) {
+    const logGroupName = name || `my-log-group-${this.gCounter++}`
+    return {
+      logGroupName,
+      creationTime: Date.now(),
+      metricFilterCount: 0,
+      arn: `arn:aws:logs:us-east-1:0:log-group:${logGroupName}:*`,
+      // tslint:disable-next-line: insecure-random
+      storedBytes: Math.floor(Math.random() * 1024 * 1024)
+    }
+  }
+
+  /**
+   * @param {string} [name]
+   * @returns {LogStream}
+   */
+  makeLogStream (name) {
+    const logStreamName = name || `my-log-stream-${this.gCounter++}`
+    return {
+      logStreamName,
+      creationTime: Date.now(),
+      firstEventTimestamp: Date.now(),
+      lastEventTimestamp: Date.now(),
+      lastIngestionTime: Date.now(),
+      arn: 'arn:aws:logs:us-east-1:0:log-group:???:' +
+        `log-stream:${logStreamName}`,
+      uploadSequenceToken: (
+        Math.random().toString() + Math.random().toString() +
+        Math.random().toString() + Math.random().toString()
+      ).replace(/\./g, ''),
+      // tslint:disable-next-line: insecure-random
+      storedBytes: Math.floor(Math.random() * 1024 * 1024)
+    }
+  }
+
+  /**
+   * @param {number} [timeOffset]
+   * @returns {OutputLogEvent}
+   */
+  makeLogEvent (timeOffset) {
+    timeOffset = timeOffset || 0
+    return {
+      timestamp: Date.now() - timeOffset,
+      ingestionTime: Date.now(),
+      message: `[INFO]: A log message: ${this.gCounter++}`
     }
   }
 }
