@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "check": "npr tsc -p .",
-    "test": "npm run check && npm run lint && npm run unit-test",
+    "test": "npm run check && npm run lint && node test/index.js && npm run type-coverage",
     "unit-test": "node test/index.js",
     "lint": "npr tsdocstandard",
     "type-coverage": "npr type-coverage --detail --strict --ignore-catch --at-least 100 --ignore-files=test/lambdas/hello.js"

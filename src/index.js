@@ -7,11 +7,11 @@ const path = require('path')
 const fs = require('fs')
 
 /**
- * @typedef {import('aws-sdk').CloudWatchLogs.LogGroup} LogGroup
+   @typedef {import('aws-sdk').CloudWatchLogs.LogGroup} LogGroup
  * @typedef {import('aws-sdk').CloudWatchLogs.LogStream} LogStream
  * @typedef {import('aws-sdk').CloudWatchLogs.OutputLogEvent} OutputLogEvent
  * @typedef {
-    import('aws-sdk').CloudWatchLogs.DescribeLogGroupsRequest
+      import('aws-sdk').CloudWatchLogs.DescribeLogGroupsRequest
  * } DescribeLogGroupsRequest
  * @typedef {
       import('aws-sdk').CloudWatchLogs.DescribeLogStreamsRequest
@@ -21,14 +21,7 @@ const fs = require('fs')
  * } GetLogEventsRequest
  */
 
-/**
- * @typedef {(err?: Error) => void} Callback
- */
-
-/**
- * @template T
- * @typedef {import('./interfaces').Dictionary<T>} Dictionary
- */
+/** @typedef {{ (err?: Error): void; }} Callback */
 
 const mkdirP = util.promisify(fs.mkdir)
 const writeFileP = util.promisify(fs.writeFile)
@@ -56,11 +49,11 @@ class FakeCloudwatchLogs {
 
     /** @type {LogGroup[]} */
     this.rawGroups = []
-    /** @type {Dictionary<LogStream[]>} */
+    /** @type {Record<string, LogStream[]|undefined>} */
     this.rawStreams = {}
-    /** @type {Dictionary<OutputLogEvent[]>} */
+    /** @type {Record<string, OutputLogEvent[]|undefined>} */
     this.rawEvents = {}
-    /** @type {Dictionary<{ offset: number }>} */
+    /** @type {Record<string, { offset: number }|undefined>} */
     this.tokens = {}
   }
 
@@ -477,9 +470,9 @@ class FakeCloudwatchLogs {
    */
   describeLogGroups (body) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const req = /** @type {
-      DescribeLogGroupsRequest
-    } */ (JSON.parse(body))
+    const req = /** @type {DescribeLogGroupsRequest} */ (
+      JSON.parse(body)
+    )
     // TODO: default sort
     // TODO: req.logGroupNamePrefix
 
