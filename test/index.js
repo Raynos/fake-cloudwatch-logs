@@ -16,77 +16,7 @@
 const { test } = require('./test-harness.js')
 
 require('./groups.js')
-
-test('can fetch cloudwatch streams', async (harness, t) => {
-  const cw = harness.getCW()
-
-  const res = await cw.describeLogStreams({
-    logGroupName: 'test-group'
-  }).promise()
-  t.ok(res)
-  t.deepEqual(res.logStreams, [])
-
-  populateStreams(harness, 'test-group', [
-    harness.makeLogStream()
-  ])
-
-  const res2 = await cw.describeLogStreams({
-    logGroupName: 'test-group'
-  }).promise()
-  t.ok(res2.logStreams)
-  assert(res2.logStreams)
-  t.equal(res2.logStreams.length, 1)
-  t.equal(
-    res2.logStreams[0].logStreamName,
-        `my-log-stream-${harness.gCounter - 1}`
-  )
-})
-
-test('can fetch two batches of streams', async (harness, t) => {
-  const cw = harness.getCW()
-
-  /** @type {LogStream[]} */
-  const logStreams = []
-  for (let i = 0; i < 30; i++) {
-    logStreams.push(harness.makeLogStream())
-  }
-  populateStreams(harness, 'test-group', logStreams)
-
-  const res1 = await cw.describeLogStreams({
-    limit: 10,
-    logGroupName: 'test-group'
-  }).promise()
-  t.ok(res1.logStreams)
-  t.ok(res1.nextToken)
-  assert(res1.logStreams)
-  t.equal(res1.logStreams.length, 10)
-  t.equal(
-    res1.logStreams[0].logStreamName,
-        `my-log-stream-${harness.gCounter - 30}`
-  )
-  t.equal(
-    res1.logStreams[9].logStreamName,
-        `my-log-stream-${harness.gCounter - 21}`
-  )
-
-  const res2 = await cw.describeLogStreams({
-    limit: 10,
-    logGroupName: 'test-group',
-    nextToken: res1.nextToken
-  }).promise()
-  t.ok(res2.logStreams)
-  t.ok(res2.nextToken)
-  assert(res2.logStreams)
-  t.equal(res2.logStreams.length, 10)
-  t.equal(
-    res2.logStreams[0].logStreamName,
-        `my-log-stream-${harness.gCounter - 20}`
-  )
-  t.equal(
-    res2.logStreams[9].logStreamName,
-        `my-log-stream-${harness.gCounter - 11}`
-  )
-})
+require('./streams.js')
 
 test('can fetch log events', async (harness, t) => {
   const cw = harness.getCW()
@@ -287,40 +217,6 @@ test('can fetch pages of log events', async (harness, t) => {
   t.ok(ts6Zero && ts6Nine && ts6Zero < ts6Nine)
 })
 
-test('can cache streams to disk', async (harness, t) => {
-  const cw = harness.getCW()
-  const server = harness.getServer()
-
-  /** @type {LogStream[]} */
-  const logStreams = []
-  for (let i = 0; i < 30; i++) {
-    logStreams.push(harness.makeLogStream())
-  }
-
-  const cachePath = harness.getCachePath()
-  await server.cacheStreamsToDisk(
-    cachePath, 'test-group', logStreams
-  )
-  await server.populateFromCache(cachePath)
-
-  const res1 = await cw.describeLogStreams({
-    limit: 10,
-    logGroupName: 'test-group'
-  }).promise()
-  t.ok(res1.logStreams)
-  t.ok(res1.nextToken)
-  assert(res1.logStreams)
-  t.equal(res1.logStreams.length, 10)
-  t.equal(
-    res1.logStreams[0].logStreamName,
-        `my-log-stream-${harness.gCounter - 30}`
-  )
-  t.equal(
-    res1.logStreams[9].logStreamName,
-        `my-log-stream-${harness.gCounter - 21}`
-  )
-})
-
 test('can cache events to disk', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
@@ -414,22 +310,6 @@ function populateEvents (
     logGroupName, [harness.makeLogStream(logStreamName)]
   )
   server.populateEvents(logGroupName, logStreamName, events)
-}
-
-/**
- * @param {import('./test-harness').TestHarness} harness
- * @param {string} logGroupName
- * @param {LogStream[]} streams
- * @returns {void}
- */
-function populateStreams (
-  harness,
-  logGroupName,
-  streams
-) {
-  const server = harness.getServer()
-  server.populateGroups([harness.makeLogGroup(logGroupName)])
-  server.populateStreams(logGroupName, streams)
 }
 
 /**
