@@ -337,9 +337,9 @@ test('can fetch pages of log events', async (harness, t) => {
     res3.events[9].message,
         `[INFO]: A log message: ${gCounter - 1}`
   )
-  const ts3_0 = res3.events[0].timestamp
-  const ts3_9 = res3.events[9].timestamp
-  t.ok(ts3_0 && ts3_9 && ts3_0 < ts3_9)
+  const ts3Zero = res3.events[0].timestamp
+  const ts3Nine = res3.events[9].timestamp
+  t.ok(ts3Zero && ts3Nine && ts3Zero < ts3Nine)
 
   const res4 = await cw.getLogEvents({
     limit: 10,
@@ -360,9 +360,9 @@ test('can fetch pages of log events', async (harness, t) => {
     res4.events[9].message,
         `[INFO]: A log message: ${gCounter - 11}`
   )
-  const ts4_0 = res4.events[0].timestamp
-  const ts4_9 = res4.events[9].timestamp
-  t.ok(ts4_0 && ts4_9 && ts4_0 < ts4_9)
+  const ts4Zero = res4.events[0].timestamp
+  const ts4Nine = res4.events[9].timestamp
+  t.ok(ts4Zero && ts4Nine && ts4Zero < ts4Nine)
 
   const res5 = await cw.getLogEvents({
     limit: 10,
@@ -383,9 +383,9 @@ test('can fetch pages of log events', async (harness, t) => {
     res5.events[9].message,
         `[INFO]: A log message: ${gCounter - 21}`
   )
-  const ts5_0 = res5.events[0].timestamp
-  const ts5_9 = res5.events[9].timestamp
-  t.ok(ts5_0 && ts5_9 && ts5_0 < ts5_9)
+  const ts5Zero = res5.events[0].timestamp
+  const ts5Nine = res5.events[9].timestamp
+  t.ok(ts5Zero && ts5Nine && ts5Zero < ts5Nine)
 
   const res6 = await cw.getLogEvents({
     limit: 10,
@@ -406,9 +406,9 @@ test('can fetch pages of log events', async (harness, t) => {
     res6.events[9].message,
         `[INFO]: A log message: ${gCounter - 11}`
   )
-  const ts6_0 = res6.events[0].timestamp
-  const ts6_9 = res6.events[9].timestamp
-  t.ok(ts6_0 && ts6_9 && ts6_0 < ts6_9)
+  const ts6Zero = res6.events[0].timestamp
+  const ts6Nine = res6.events[9].timestamp
+  t.ok(ts6Zero && ts6Nine && ts6Zero < ts6Nine)
 })
 
 test('can cache groups to disk', async (harness, t) => {
