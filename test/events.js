@@ -221,15 +221,14 @@ test('can cache events to disk', async (harness, t) => {
     logEvents.push(harness.makeLogEvent(30 - i))
   }
 
-  server.populateStreams('test-group', [
+  server.populateStreams('123', 'us-east-1', 'test-group', [
     harness.makeLogStream('test-stream')
   ])
 
-  const cachePath = harness.getCachePath()
   await server.cacheEventsToDisk(
-    cachePath, 'test-group', 'test-stream', logEvents
+    '123', 'us-east-1', 'test-group', 'test-stream', logEvents
   )
-  await server.populateFromCache(cachePath)
+  await server.populateFromCache()
 
   const res2 = await cw.getLogEvents({
     logGroupName: 'test-group',
@@ -299,11 +298,15 @@ function populateEvents (
   harness, logGroupName, logStreamName, events
 ) {
   const server = harness.getServer()
-  server.populateGroups([harness.makeLogGroup(logGroupName)])
-  server.populateStreams(
-    logGroupName, [harness.makeLogStream(logStreamName)]
+  server.populateGroups(
+    '123', 'us-east-1', [harness.makeLogGroup(logGroupName)]
   )
-  server.populateEvents(logGroupName, logStreamName, events)
+  server.populateStreams('123', 'us-east-1', logGroupName, [
+    harness.makeLogStream(logStreamName)
+  ])
+  server.populateEvents(
+    '123', 'us-east-1', logGroupName, logStreamName, events
+  )
 }
 
 /**

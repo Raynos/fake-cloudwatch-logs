@@ -5,6 +5,8 @@ const http = require('http')
 const util = require('util')
 const path = require('path')
 const fs = require('fs')
+/** @type {import('assert')} */
+const assert = require('assert')
 
 /**
    @typedef {import('aws-sdk').CloudWatchLogs.LogGroup} LogGroup
@@ -23,14 +25,15 @@ const fs = require('fs')
 
 /** @typedef {{ (err?: Error): void; }} Callback */
 
-const mkdirP = util.promisify(fs.mkdir)
+const mkdir = util.promisify(fs.mkdir)
 const writeFileP = util.promisify(fs.writeFile)
 const readFileP = util.promisify(fs.readFile)
 const readdirP = util.promisify(fs.readdir)
+const stripCreds = /Credential=([\w-/0-9a-zA-Z]+),/
 
 class FakeCloudwatchLogs {
   /**
-   * @param {{ port?: number }} options
+   * @param {{ port?: number, cachePath?: string }} options
    */
   constructor (options) {
     /** @type {http.Server | null} */
@@ -43,9 +46,11 @@ class FakeCloudwatchLogs {
     this.touchedCache = false
     /** @type {string[]} */
     this.knownCaches = []
+    /** @type {string|null} */
+    this.cachePath = options.cachePath || null
 
-    /** @type {LogGroup[]} */
-    this.rawGroups = []
+    /** @type {Record<String, LogGroup[]|undefined>} */
+    this.rawGroups = {}
     /** @type {Record<string, LogStream[]|undefined>} */
     this.rawStreams = {}
     /** @type {Record<string, OutputLogEvent[]|undefined>} */
@@ -55,252 +60,241 @@ class FakeCloudwatchLogs {
   }
 
   /**
-   * @param {string} filePath
-   * @returns {Promise<void>}
-   */
-  async tryMkdir (filePath) {
-    try {
-      await mkdirP(filePath)
-    } catch (maybeErr) {
-      /**
-       * https://github.com/typescript-eslint/typescript-eslint/issues/1943
-       */
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
-      if (err.code !== 'EEXIST') throw err
-    }
-  }
-
-  /**
-   * TODO: Add profile & region to cache*()
    * TODO: Add fetchAndCache()
    * TODO: Add getAllRegions()
-   * TODO: Add profile & region to populate*
    *
    * TODO: Update read paths, add `_getProfileRegion()`
-   *
    */
 
   /**
-   * @param {string} filePath
+   * @param {string} profile
+   * @param {string} region
    * @param {LogGroup[]} groups
    * @returns {Promise<void>}
    */
-  async cacheGroupsToDisk (filePath, groups) {
-    this.touchedCache = true
-    if (!this.knownCaches.includes(filePath)) {
-      this.knownCaches.push(filePath)
+  async cacheGroupsToDisk (profile, region, groups) {
+    if (!this.cachePath) {
+      throw new Error('Missing this.cachePath')
     }
 
-    await this.tryMkdir(filePath)
+    this.touchedCache = true
+    if (!this.knownCaches.includes(this.cachePath)) {
+      this.knownCaches.push(this.cachePath)
+    }
+
+    const groupsDir = path.join(this.cachePath, 'groups')
+    await mkdir(groupsDir, { recursive: true })
     await writeFileP(
-      path.join(filePath, 'groups.json'),
+      path.join(groupsDir, `${profile}::${region}-groups.json`),
       JSON.stringify({
         type: 'cached-log-group',
-        groups
-      }),
+        profile: profile,
+        region: region,
+        data: groups
+      }, null, 4),
       'utf8'
     )
   }
 
   /**
-   * @param {string} filePath
+   * @param {string} profile
+   * @param {string} region
    * @param {string} groupName
    * @param {LogStream[]} streams
    * @returns {Promise<void>}
    */
-  async cacheStreamsToDisk (filePath, groupName, streams) {
+  async cacheStreamsToDisk (profile, region, groupName, streams) {
+    if (!this.cachePath) {
+      throw new Error('Missing this.cachePath')
+    }
+
     this.touchedCache = true
-    if (!this.knownCaches.includes(filePath)) {
-      this.knownCaches.push(filePath)
+    if (!this.knownCaches.includes(this.cachePath)) {
+      this.knownCaches.push(this.cachePath)
     }
 
     const key = encodeURIComponent(groupName)
-    await this.tryMkdir(filePath)
-    await this.tryMkdir(path.join(filePath, 'groups'))
-    await this.tryMkdir(path.join(filePath, 'groups', key))
+    const streamsDir = path.join(this.cachePath, 'streams')
+    await mkdir(streamsDir, { recursive: true })
     await writeFileP(
-      path.join(filePath, 'groups', key, 'streams.json'),
+      path.join(streamsDir, `${profile}::${region}::${key}-streams.json`),
       JSON.stringify({
         type: 'cached-log-stream',
-        groupName,
-        streams
-      })
+        profile: profile,
+        region: region,
+        groupName: groupName,
+        data: streams
+      }, null, 4),
+      'utf8'
     )
   }
 
   /**
-   * @param {string} filePath
+   * @param {string} profile
+   * @param {string} region
    * @param {string} groupName
    * @param {string} streamName
    * @param {OutputLogEvent[]} events
    * @returns {Promise<void>}
    */
   async cacheEventsToDisk (
-    filePath, groupName, streamName, events
+    profile, region, groupName, streamName, events
   ) {
-    this.touchedCache = true
-    if (!this.knownCaches.includes(filePath)) {
-      this.knownCaches.push(filePath)
+    if (!this.cachePath) {
+      throw new Error('Missing this.cachePath')
     }
 
-    const streamsDir = path.join(filePath, 'streams')
-    const key = encodeURIComponent(groupName + ':' + streamName)
+    this.touchedCache = true
+    if (!this.knownCaches.includes(this.cachePath)) {
+      this.knownCaches.push(this.cachePath)
+    }
 
-    await this.tryMkdir(filePath)
-    await this.tryMkdir(path.join(streamsDir))
-    await this.tryMkdir(path.join(streamsDir, key))
+    const key = encodeURIComponent(groupName + ':' + streamName)
+    const eventsDir = path.join(this.cachePath, 'events')
+
+    await mkdir(eventsDir, { recursive: true })
     await writeFileP(
-      path.join(streamsDir, key, 'events.json'),
+      path.join(eventsDir, `${profile}::${region}::${key}-events.json`),
       JSON.stringify({
         type: 'cached-log-event',
-        groupName,
-        streamName,
-        events
-      })
+        profile: profile,
+        region: region,
+        groupName: groupName,
+        streamName: streamName,
+        data: events
+      }, null, 4),
+      'utf8'
     )
   }
 
+  /* eslint-disable @typescript-eslint/no-unsafe-assignment */
   /**
-   * @param {string} filePath
+   * @param {string} [filePath]
    * @returns {Promise<void>}
    */
   async populateFromCache (filePath) {
-    /** @type {string | null} */
-    let groupsStr = null
-    try {
-      groupsStr = await readFileP(
-        path.join(filePath, 'groups.json'), 'utf8'
-      )
-    } catch (maybeErr) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
-      if (err.code !== 'ENOENT') throw err
+    const cachePath = filePath || this.cachePath
+    if (!cachePath) {
+      throw new Error('missing filePath')
     }
 
-    if (groupsStr) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const groupsInfo = /** @type {{
-        groups: LogGroup[]
+    const groupFiles = (await readdirOptional(
+      path.join(cachePath, 'groups')
+    )) || []
+    for (const fileName of groupFiles) {
+      const groupsStr = await readFileP(path.join(
+        cachePath, 'groups', fileName
+      ), 'utf8')
+      const groups = /** @type {{
+        profile: string;
+        region: string;
+        data: LogGroup[]
       }} */ (JSON.parse(groupsStr))
-      this.populateGroups(groupsInfo.groups)
-    }
-
-    /** @type {string[] | null} */
-    let groupDirs = null
-    try {
-      groupDirs = await readdirP(
-        path.join(filePath, 'groups')
+      this.populateGroups(
+        groups.profile, groups.region, groups.data
       )
-    } catch (maybeErr) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
-      if (err.code !== 'ENOENT') throw err
     }
 
-    if (groupDirs) {
-      for (const groupName of groupDirs) {
-        const streamsStr = await readFileP(path.join(
-          filePath,
-          'groups',
-          groupName,
-          'streams.json'
-        ), 'utf8')
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const streamsInfo = /** @type {{
-          groupName: string,
-          streams: LogStream[]
-        }} */ (JSON.parse(streamsStr))
-        this.populateStreams(
-          streamsInfo.groupName,
-          streamsInfo.streams
-        )
-      }
-    }
-
-    /** @type {string[] | null} */
-    let streamDirs = null
-    try {
-      streamDirs = await readdirP(
-        path.join(filePath, 'streams')
+    const streamFiles = (await readdirOptional(
+      path.join(cachePath, 'streams')
+    )) || []
+    for (const fileName of streamFiles) {
+      const streamsStr = await readFileP(path.join(
+        cachePath, 'streams', fileName
+      ), 'utf8')
+      const streams = /** @type {{
+        profile: string;
+        region: string;
+        groupName: string;
+        data: LogStream[]
+      }} */ (JSON.parse(streamsStr))
+      this.populateStreams(
+        streams.profile, streams.region,
+        streams.groupName, streams.data
       )
-    } catch (maybeErr) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
-      if (err.code !== 'ENOENT') throw err
     }
 
-    if (streamDirs) {
-      for (const dirName of streamDirs) {
-        const eventsStr = await readFileP(path.join(
-          filePath,
-          'streams',
-          dirName,
-          'events.json'
-        ), 'utf8')
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const eventsinfo = /** @type {{
-          groupName: string,
-          streamName: string,
-          events: OutputLogEvent[]
-        }} */ (JSON.parse(eventsStr))
-        this.populateEvents(
-          eventsinfo.groupName,
-          eventsinfo.streamName,
-          eventsinfo.events
-        )
-      }
+    const eventFiles = (await readdirOptional(
+      path.join(cachePath, 'events')
+    )) || []
+    for (const fileName of eventFiles) {
+      const eventsStr = await readFileP(path.join(
+        cachePath, 'events', fileName
+      ), 'utf8')
+      const events = /** @type {{
+        profile: string;
+        region: string;
+        groupName: string;
+        streamName: string;
+        data: OutputLogEvent[]
+      }} */ (JSON.parse(eventsStr))
+      this.populateEvents(
+        events.profile, events.region, events.groupName,
+        events.streamName, events.data
+      )
     }
   }
+  /* eslint-enable @typescript-eslint/no-unsafe-assignment */
 
   /**
-   * @param {LogGroup[]} groups
+   * @param {string} profile
+   * @param {string} region
+   * @param {LogGroup[]} newGroups
    * @returns {void}
    */
-  populateGroups (groups) {
-    this.rawGroups.push(...groups)
+  populateGroups (profile, region, newGroups) {
+    const key = `${profile}::${region}`
+    const groups = this.rawGroups[key] || []
+    groups.push(...newGroups)
+
+    this.rawGroups[key] = groups
   }
 
   /**
+   * @param {string} profile
+   * @param {string} region
    * @param {string} groupName
-   * @param {LogStream[]} streams
+   * @param {LogStream[]} newStreams
    * @returns {void}
    */
-  populateStreams (groupName, streams) {
-    let rawStreams = this.rawStreams[groupName]
-    if (rawStreams === undefined) {
-      rawStreams = this.rawStreams[groupName] = []
-    }
-    rawStreams.push(...streams)
+  populateStreams (profile, region, groupName, newStreams) {
+    const key = `${profile}::${region}::${groupName}`
+    const streams = this.rawStreams[key] || []
+    streams.push(...newStreams)
+
+    this.rawStreams[key] = streams
   }
 
   /**
+   * @param {string} profile
+   * @param {string} region
    * @param {string} groupName
    * @param {string} streamName
-   * @param {OutputLogEvent[]} events
+   * @param {OutputLogEvent[]} newEvents
    * @returns {void}
    */
-  populateEvents (
-    groupName, streamName, events
-  ) {
-    if (events.length === 0) {
-      throw new Error('cannot add empty events array')
+  populateEvents (profile, region, groupName, streamName, newEvents) {
+    assert(newEvents.length > 0, 'Cannot add empty events array')
+    for (const ev of newEvents) {
+      assert(typeof ev.timestamp === 'number', 'Must have timestamp field')
+      assert(typeof ev.message === 'string', 'Must have message field')
+      assert(typeof ev.ingestionTime === 'number', 'Must have ingestionTime')
     }
 
-    const key = groupName + '~~' + streamName
+    const key = `${profile}::${region}::${groupName}::${streamName}`
 
-    let rawEvents = this.rawEvents[key]
-    if (rawEvents === undefined) {
-      rawEvents = this.rawEvents[key] = []
-    }
-    rawEvents.push(...events)
-    rawEvents.sort((a, b) => {
+    const events = this.rawEvents[key] || []
+    events.push(...newEvents)
+    events.sort((a, b) => {
       if (!a.timestamp) return 1
       if (!b.timestamp) return -1
       return a.timestamp < b.timestamp ? -1 : 1
     })
 
-    const rawStreams = this.rawStreams[groupName]
+    this.rawEvents[key] = events
+
+    const streamKey = `${profile}::${region}::${groupName}`
+    const rawStreams = this.rawStreams[streamKey]
     if (!rawStreams) {
       throw new Error('could not find streams for: ' + groupName)
     }
@@ -312,18 +306,27 @@ class FakeCloudwatchLogs {
     }
 
     let oldestTs = 0
+    let oldestIngestion = 0
     let youngestTs = Infinity
-    for (const e of rawEvents) {
-      if (!e.timestamp) continue
+    for (const e of events) {
+      assert(e.timestamp, 'valid timestamp')
+      assert(e.ingestionTime, 'valid ingestionTime')
       if (e.timestamp > oldestTs) {
         oldestTs = e.timestamp
+      }
+      if (e.ingestionTime > oldestIngestion) {
+        oldestIngestion = e.ingestionTime
       }
       if (e.timestamp < youngestTs) {
         youngestTs = e.timestamp
       }
     }
 
-    stream.lastIngestionTime = oldestTs
+    stream.lastIngestionTime = oldestIngestion
+    /**
+     *  TODO: @Raynos ; emulate staleness of this field.
+     *  This field is delayed by ~1hour in production.
+     */
     stream.lastEventTimestamp = oldestTs
     stream.firstEventTimestamp = youngestTs
   }
@@ -390,15 +393,15 @@ class FakeCloudwatchLogs {
       let respBody
       switch (lastPart) {
         case 'DescribeLogGroups':
-          respBody = this.describeLogGroups(body)
+          respBody = this.describeLogGroups(req, body)
           break
 
         case 'DescribeLogStreams':
-          respBody = this.describeLogStreams(body)
+          respBody = this.describeLogStreams(req, body)
           break
 
         case 'GetLogEvents':
-          respBody = this.getLogEvents(body)
+          respBody = this.getLogEvents(req, body)
           break
 
         default:
@@ -451,20 +454,47 @@ class FakeCloudwatchLogs {
   }
 
   /**
-   * @param {string} body
+   * @param {http.IncomingMessage} req
+   * @returns {{ region: string, profile: string, key: string }}
+   */
+  _getCredentials (req) {
+    const authHeader = req.headers.authorization
+    let profile = 'default'
+    let region = 'us-east-1'
+    const match = authHeader ? authHeader.match(stripCreds) : null
+    if (match) {
+      const creds = match[0].slice(11)
+      const parts = creds.split('/')
+      const accessKeyId = parts[0]
+
+      region = parts[2]
+      profile = accessKeyId
+    }
+
+    return { profile, region, key: `${profile}::${region}` }
+  }
+
+  /**
+   * @param {http.IncomingMessage} req
+   * @param {string} bodyStr
    * @returns {import('aws-sdk').CloudWatchLogs.DescribeLogGroupsResponse}
    */
-  describeLogGroups (body) {
+  describeLogGroups (req, bodyStr) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const req = /** @type {DescribeLogGroupsRequest} */ (
-      JSON.parse(body)
+    const body = /** @type {DescribeLogGroupsRequest} */ (
+      JSON.parse(bodyStr)
     )
+
     // TODO: default sort
     // TODO: req.logGroupNamePrefix
 
-    const page = this.paginate(
-      this.rawGroups, req.nextToken, req.limit
-    )
+    const creds = this._getCredentials(req)
+    const groups = this.rawGroups[creds.key]
+    if (!groups) {
+      return { logGroups: [] }
+    }
+
+    const page = this.paginate(groups, body.nextToken, body.limit)
 
     const res = {
       logGroups: page.items,
@@ -474,28 +504,33 @@ class FakeCloudwatchLogs {
   }
 
   /**
-   * @param {string} body
+   * @param {http.IncomingMessage} req
+   * @param {string} bodyStr
    * @returns {import('aws-sdk').CloudWatchLogs.DescribeLogStreamsResponse}
    */
-  describeLogStreams (body) {
+  describeLogStreams (req, bodyStr) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const req = /** @type {
-      DescribeLogStreamsRequest
-    } */ (JSON.parse(body))
+    const body = /** @type {DescribeLogStreamsRequest} */ (
+      JSON.parse(bodyStr)
+    )
+
     // TODO: default sort
     // TODO: req.logStreamNamePrefix
     // TODO: req.descending
     // TODO: req.orderBy
 
-    const streamsByGroup = this.rawStreams[req.logGroupName]
+    const creds = this._getCredentials(req)
+    const key = `${creds.key}::${body.logGroupName}`
+
+    const streamsByGroup = this.rawStreams[key]
     if (!streamsByGroup) {
       return { logStreams: [] }
     }
 
     const page = this.paginate(
       streamsByGroup,
-      req.nextToken,
-      req.limit
+      body.nextToken,
+      body.limit
     )
 
     const res = {
@@ -528,27 +563,27 @@ class FakeCloudwatchLogs {
    *          nextBackwardToken = pointer => 20-29
    *      }
    *
-   * @param {string} body
+   * @param {http.IncomingMessage} req
+   * @param {string} bodyStr
    * @returns {import('aws-sdk').CloudWatchLogs.GetLogEventsResponse}
    */
-  getLogEvents (body) {
+  getLogEvents (req, bodyStr) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const req = /** @type {
-      GetLogEventsRequest
-    } */ (JSON.parse(body))
-    // TODO: req.startFromHead
+    const body = /** @type {GetLogEventsRequest} */ (
+      JSON.parse(bodyStr)
+    )
 
-    const key = req.logGroupName + '~~' + req.logStreamName
+    // TODO: req.startFromHead
+    const creds = this._getCredentials(req)
+    const key = `${creds.key}::${body.logGroupName}::${body.logStreamName}`
     let events = this.rawEvents[key]
     if (!events) {
-      return {
-        events: []
-      }
+      return { events: [] }
     }
 
-    if (req.startTime || req.endTime) {
-      const startTime = req.startTime || 0
-      const endTime = req.endTime || Infinity
+    if (body.startTime || body.endTime) {
+      const startTime = body.startTime || 0
+      const endTime = body.endTime || Infinity
       events = events.filter((e) => {
         if (!e.timestamp) return false
         return startTime <= e.timestamp &&
@@ -557,17 +592,17 @@ class FakeCloudwatchLogs {
     }
 
     let offset = 0
-    if (req.nextToken) {
-      const tokenInfo = this.tokens[req.nextToken]
+    if (body.nextToken) {
+      const tokenInfo = this.tokens[body.nextToken]
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this.tokens[req.nextToken]
+      delete this.tokens[body.nextToken]
       if (!tokenInfo) {
-        throw new Error(`invalid nextToken: ${req.nextToken}`)
+        throw new Error(`invalid nextToken: ${body.nextToken}`)
       }
       offset = tokenInfo.offset
     }
 
-    const limit = req.limit || 10000
+    const limit = body.limit || 10000
     let start = events.length - limit - offset
     let end = events.length - offset
 
@@ -614,4 +649,20 @@ function cuuid () {
   return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
     str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
     str.slice(20)
+}
+
+/**
+ * @param {string} dirName
+ * @returns {Promise<string[] | null>}
+ */
+async function readdirOptional (dirName) {
+  try {
+    return await readdirP(dirName)
+  } catch (maybeErr) {
+    /* eslint-disable-next-line @typescript-eslint/no-unsafe-assignment */
+    const err = /** @type {NodeJS.ErrnoException} */ (maybeErr)
+    if (err.code !== 'ENOENT') throw err
+  }
+
+  return null
 }

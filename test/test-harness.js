@@ -29,7 +29,8 @@ class TestHarness {
   constructor () {
     /** @type {FakeCloudwatchLogs} */
     this.cwServer = new FakeCloudwatchLogs({
-      port: 0
+      port: 0,
+      cachePath: this.getCachePath()
     })
     /** @type {AWS.CloudWatchLogs | null} */
     this.cw = null
@@ -39,13 +40,21 @@ class TestHarness {
 
   /** @returns {Promise<void>} */
   async bootstrap () {
-    const hostPort = await this.cwServer.bootstrap()
+    await this.cwServer.bootstrap()
+    this.cw = this.buildCWClient('123', 'us-east-1')
+  }
 
-    this.cw = new AWS.CloudWatchLogs({
-      region: 'us-east-1',
-      endpoint: `http://${hostPort}`,
+  /**
+   * @param {string} accessKeyId
+   * @param {string} region
+   * @returns {AWS.CloudWatchLogs}
+   */
+  buildCWClient (accessKeyId, region) {
+    return new AWS.CloudWatchLogs({
+      region: region,
+      endpoint: `http://${this.cwServer.hostPort}`,
       sslEnabled: false,
-      accessKeyId: '123',
+      accessKeyId: accessKeyId,
       secretAccessKey: 'abc'
     })
   }

@@ -12,7 +12,7 @@ test('can fetch cloudwatch groups', async (harness, t) => {
   t.equal(res.logGroups.length, 0)
 
   const server = harness.getServer()
-  server.populateGroups([
+  server.populateGroups('123', 'us-east-1', [
     harness.makeLogGroup()
   ])
 
@@ -33,7 +33,7 @@ test('can fetch limit=10 groups', async (harness, t) => {
   const logGroups = [...Array(100).keys()].map((_) => {
     return harness.makeLogGroup()
   })
-  server.populateGroups(logGroups)
+  server.populateGroups('123', 'us-east-1', logGroups)
 
   const res1 = await cw.describeLogGroups().promise()
   t.ok(res1.logGroups)
@@ -71,7 +71,7 @@ test('can fetch two batches of groups', async (harness, t) => {
   const logGroups = [...Array(30).keys()].map((_) => {
     return harness.makeLogGroup()
   })
-  server.populateGroups(logGroups)
+  server.populateGroups('123', 'us-east-1', logGroups)
 
   const res1 = await cw.describeLogGroups({
     limit: 10
@@ -115,9 +115,8 @@ test('can cache groups to disk', async (harness, t) => {
     return harness.makeLogGroup()
   })
 
-  const cachePath = harness.getCachePath()
-  await server.cacheGroupsToDisk(cachePath, logGroups)
-  await server.populateFromCache(cachePath)
+  await server.cacheGroupsToDisk('123', 'us-east-1', logGroups)
+  await server.populateFromCache()
 
   const res1 = await cw.describeLogGroups({
     limit: 10
