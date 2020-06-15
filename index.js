@@ -35,7 +35,7 @@ class FakeCloudwatchLogs {
   /**
    * @param {{ port?: number, cachePath?: string }} options
    */
-  constructor (options) {
+  constructor (options = {}) {
     /** @type {http.Server | null} */
     this.httpServer = http.createServer()
     /** @type {number} */
@@ -62,9 +62,131 @@ class FakeCloudwatchLogs {
   /**
    * TODO: Add fetchAndCache()
    * TODO: Add getAllRegions()
-   *
-   * TODO: Update read paths, add `_getProfileRegion()`
    */
+
+  /**
+   * @param {import('aws-sdk')} AWS
+   * @returns {Promise<string[]>}
+   */
+  async getAllRegions (AWS) {
+    const ec2 = new AWS.EC2({ region: 'us-east-1' })
+
+    const data = await ec2.describeRegions().promise()
+
+    if (!data.Regions) return []
+    return data.Regions.map((r) => {
+      if (!r.RegionName) throw new Error('Missing RegionName')
+      return r.RegionName
+    })
+  }
+
+  /**
+   * @param {import('aws-sdk')} AWS
+   * @param {string[] | 'all'} regions
+   * @returns {Promise<void>}
+   */
+  async fetchAndCache (AWS, regions) {
+    if (regions === 'all') {
+      regions = await this.getAllRegions(AWS)
+    }
+
+    /** @type {Promise<void>[]} */
+    const tasks = []
+    for (const region of regions) {
+      tasks.push(this.fetchAndCacheForRegion(AWS, region))
+    }
+    await Promise.all(tasks)
+  }
+
+  /**
+   * @param {string} message
+   * @returns {void}
+   */
+  log (message) {
+    console.log(message)
+  }
+
+  /**
+   * @param {import('aws-sdk')} AWS
+   * @param {string} region
+   * @returns {Promise<void>}
+   */
+  async fetchAndCacheForRegion (AWS, region) {
+    const cw = new AWS.CloudWatchLogs({
+      region: region
+    })
+
+    const groups = await cw.describeLogGroups().promise()
+
+    if (!cw.config.credentials) throw new Error('no credentials')
+    const profile = cw.config.credentials.accessKeyId
+
+    if (!groups.logGroups) return
+    await this.cacheGroupsToDisk(profile, region, groups.logGroups)
+    this.populateGroups(profile, region, groups.logGroups)
+
+    for (const group of groups.logGroups) {
+      if (!group.logGroupName) continue
+
+      /** @type {string|undefined} */
+      let nextToken
+      /** @type {LogStream[]} */
+      const allStreams = []
+      do {
+        this.log(`fetching streams ${group.logGroupName} ${nextToken || ''}`)
+        const streams = await cw.describeLogStreams({
+          logGroupName: group.logGroupName,
+          nextToken: nextToken
+        }).promise()
+        if (!streams.logStreams) break
+
+        allStreams.push(...streams.logStreams)
+        nextToken = streams.nextToken
+      } while (nextToken)
+
+      await this.cacheStreamsToDisk(
+        profile, region, group.logGroupName, allStreams
+      )
+      this.populateStreams(
+        profile, region, group.logGroupName, allStreams
+      )
+
+      for (const stream of allStreams) {
+        if (!stream.logStreamName) continue
+
+        /** @type {string|undefined} */
+        let backwardToken
+        /** @type {OutputLogEvent[]} */
+        const allEvents = []
+        do {
+          this.log('fetching events ' +
+            group.logGroupName + ' ' + stream.logStreamName +
+            ' ' + (backwardToken || '')
+          )
+
+          const events = await cw.getLogEvents({
+            logGroupName: group.logGroupName,
+            logStreamName: stream.logStreamName,
+            nextToken: backwardToken
+          }).promise()
+          if (!events.events || events.events.length === 0) break
+
+          this.log(`fetched events ${events.events.length}`)
+          allEvents.push(...events.events)
+          backwardToken = events.nextBackwardToken
+        } while (backwardToken)
+
+        await this.cacheEventsToDisk(
+          profile, region, group.logGroupName,
+          stream.logStreamName, allEvents
+        )
+        this.populateEvents(
+          profile, region, group.logGroupName,
+          stream.logStreamName, allEvents
+        )
+      }
+    }
+  }
 
   /**
    * @param {string} profile
