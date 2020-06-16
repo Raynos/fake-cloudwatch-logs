@@ -212,7 +212,7 @@ test('can fetch from two groups', async (harness, t) => {
     `my-log-stream-${harness.gCounter - 1}`)
 })
 
-test.skip('can fetch in descending order', async (harness, t) => {
+test('can fetch in descending order', async (harness, t) => {
   const cw = harness.getCW()
 
   const logStreams = [...Array(30).keys()].map((_) => {
@@ -221,6 +221,12 @@ test.skip('can fetch in descending order', async (harness, t) => {
   populateStreams(
     harness, '123', 'us-east-1', 'test-group', logStreams
   )
+
+  const expectedStreams = logStreams.slice().sort((a, b) => {
+    if (!a.logStreamName) return 1
+    if (!b.logStreamName) return -1
+    return a.logStreamName < b.logStreamName ? 1 : -1
+  })
 
   const res1 = await cw.describeLogStreams({
     limit: 10,
@@ -233,16 +239,17 @@ test.skip('can fetch in descending order', async (harness, t) => {
   t.equal(res1.logStreams.length, 10)
   t.equal(
     res1.logStreams[0].logStreamName,
-      `my-log-stream-${harness.gCounter - 30}`
+    expectedStreams[0].logStreamName
   )
   t.equal(
     res1.logStreams[9].logStreamName,
-      `my-log-stream-${harness.gCounter - 21}`
+    expectedStreams[9].logStreamName
   )
 
   const res2 = await cw.describeLogStreams({
     limit: 10,
     logGroupName: 'test-group',
+    descending: true,
     nextToken: res1.nextToken
   }).promise()
   t.ok(res2.logStreams)
@@ -251,11 +258,11 @@ test.skip('can fetch in descending order', async (harness, t) => {
   t.equal(res2.logStreams.length, 10)
   t.equal(
     res2.logStreams[0].logStreamName,
-      `my-log-stream-${harness.gCounter - 20}`
+    expectedStreams[10].logStreamName
   )
   t.equal(
     res2.logStreams[9].logStreamName,
-      `my-log-stream-${harness.gCounter - 11}`
+    expectedStreams[19].logStreamName
   )
 })
 

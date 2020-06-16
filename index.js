@@ -650,6 +650,9 @@ class FakeCloudwatchLogs {
       if (!b.logStreamName) return 1
       return a.logStreamName < b.logStreamName ? -1 : 1
     })
+    if (body.descending) {
+      streamsByGroup.reverse()
+    }
 
     const page = this.paginate(
       streamsByGroup,
