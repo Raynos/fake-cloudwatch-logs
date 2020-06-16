@@ -15,7 +15,7 @@ require('./events.js')
  * [X] Query streams for two different groups.
  * [X] Query streams for two different regions.
  * [X] Query streams for two different profiles.
- * [ ] Query streams with `logStreamNamePrefix`
+ * [X] Query streams with `logStreamNamePrefix`
  * [X] Query streams with `nextToken` pagination.
  * [ ] Query streams with `orderBy` property.
  *

@@ -508,21 +508,30 @@ class FakeCloudwatchLogs {
 
       /** @type {unknown} */
       let respBody
-      switch (lastPart) {
-        case 'DescribeLogGroups':
-          respBody = this.describeLogGroups(req, body)
-          break
 
-        case 'DescribeLogStreams':
-          respBody = this.describeLogStreams(req, body)
-          break
+      try {
+        switch (lastPart) {
+          case 'DescribeLogGroups':
+            respBody = this.describeLogGroups(req, body)
+            break
 
-        case 'GetLogEvents':
-          respBody = this.getLogEvents(req, body)
-          break
+          case 'DescribeLogStreams':
+            respBody = this.describeLogStreams(req, body)
+            break
 
-        default:
-          break
+          case 'GetLogEvents':
+            respBody = this.getLogEvents(req, body)
+            break
+
+          default:
+            break
+        }
+      } catch (maybeErr) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const err = /** @type {Error} */ (maybeErr)
+        res.statusCode = 500
+        res.end(JSON.stringify({ message: err.message }))
+        return
       }
 
       if (typeof respBody !== 'object') {
@@ -630,16 +639,18 @@ class FakeCloudwatchLogs {
     const body = /** @type {DescribeLogStreamsRequest} */ (
       JSON.parse(bodyStr)
     )
-
-    // TODO: req.logStreamNamePrefix
     // TODO: req.orderBy
+
+    if (!body.logGroupName) {
+      throw new Error('Missing required key \'logGroupName\' in params')
+    }
 
     const creds = this._getCredentials(req)
     const key = `${creds.key}::${body.logGroupName}`
 
     let streamsByGroup = this.rawStreams[key]
     if (!streamsByGroup) {
-      return { logStreams: [] }
+      throw new Error('The specified log group does not exist.')
     }
 
     streamsByGroup = streamsByGroup.slice()

@@ -9,11 +9,15 @@ const { test } = require('./test-harness.js')
 test('can fetch cloudwatch streams', async (harness, t) => {
   const cw = harness.getCW()
 
-  const res = await cw.describeLogStreams({
-    logGroupName: 'test-group'
-  }).promise()
-  t.ok(res)
-  t.deepEqual(res.logStreams, [])
+  try {
+    await cw.describeLogStreams({
+      logGroupName: 'test-group'
+    }).promise()
+  } catch (maybeErr) {
+    const err = toError(maybeErr)
+    t.ok(err)
+    t.equal(err.message, 'The specified log group does not exist.')
+  }
 
   populateStreams(harness, '123', 'us-east-1', 'test-group', [
     harness.makeLogStream()
@@ -315,6 +319,28 @@ test('can fetch with logStreamNamePrefix', async (harness, t) => {
     'test-stream-def-3', 'test-stream-def-4'
   ])
 })
+
+test('query without logGroupname', async (harness, t) => {
+  const cw = harness.getCW()
+  try {
+    await cw.describeLogStreams({
+      logGroupName: ''
+    }).promise()
+    t.fail()
+  } catch (maybeErr) {
+    const err = toError(maybeErr)
+    t.ok(err)
+    t.equal(err.message, 'Missing required key \'logGroupName\' in params')
+  }
+})
+
+/**
+ * @param {unknown} e
+ * @returns {Error}
+ */
+function toError (e) {
+  return /** @type {Error} */ (e)
+}
 
 /**
  * @param {import('./test-harness').TestHarness} harness
