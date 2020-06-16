@@ -1,6 +1,9 @@
 // @ts-check
 'use strict'
 
+/** @type {import('assert')} */
+const assert = require('assert')
+
 const { test } = require('./test-harness.js')
 
 test('can fetch cloudwatch groups', async (harness, t) => {
@@ -192,11 +195,3 @@ test('can fetch from two profiles', async (harness, t) => {
   t.equal(res2.logGroups[0].logGroupName,
     `my-log-group-${harness.gCounter - 1}`)
 })
-
-/**
- * @param {unknown} value
- * @returns {asserts value}
- */
-function assert (value) {
-  if (!value) throw new Error('value is falsey')
-}
