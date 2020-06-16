@@ -11,8 +11,8 @@ require('./events.js')
  * [x] Query groups for two profiles / accountIds
  *
  * [ ] Query streams with `Descending` property.
- * [ ] Query streams with `Limit` property.
- * [ ] Query streams for two different groups.
+ * [X] Query streams with `Limit` property.
+ * [X] Query streams for two different groups.
  * [X] Query streams for two different regions.
  * [X] Query streams for two different profiles.
  * [ ] Query streams with `logStreamNamePrefix`

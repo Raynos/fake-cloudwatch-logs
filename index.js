@@ -639,10 +639,17 @@ class FakeCloudwatchLogs {
     const creds = this._getCredentials(req)
     const key = `${creds.key}::${body.logGroupName}`
 
-    const streamsByGroup = this.rawStreams[key]
+    let streamsByGroup = this.rawStreams[key]
     if (!streamsByGroup) {
       return { logStreams: [] }
     }
+
+    streamsByGroup = streamsByGroup.slice()
+    streamsByGroup.sort((a, b) => {
+      if (!a.logStreamName) return -1
+      if (!b.logStreamName) return 1
+      return a.logStreamName < b.logStreamName ? -1 : 1
+    })
 
     const page = this.paginate(
       streamsByGroup,
