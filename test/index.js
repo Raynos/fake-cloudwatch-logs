@@ -7,32 +7,32 @@ require('./events.js')
 /**
  * TODO: tests
  *
- * Query groups for two regions
- * Query groups for two profiles / accountIds
+ * [x] Query groups for two regions
+ * [x] Query groups for two profiles / accountIds
  *
- * Query streams with `Descending` property.
- * Query streams with `Limit` property.
- * Query streams for two different groups.
- * Query streams with `logStreamNamePrefix`
- * Query streams with `nextToken` pagination.
- * Query streams with `orderBy` property.
+ * [ ] Query streams with `Descending` property.
+ * [ ] Query streams with `Limit` property.
+ * [ ] Query streams for two different groups.
+ * [ ] Query streams with `logStreamNamePrefix`
+ * [ ] Query streams with `nextToken` pagination.
+ * [ ] Query streams with `orderBy` property.
  *
- * Query streams when log events are being written and check
+ * [ ] Query streams when log events are being written and check
  * the state of the timestamps.
  *
- * Query HISTORICAL stream
+ * [ ] Query HISTORICAL stream
  *    - firstEventTs
  *    - lastEventTs
  *    - creationTime
  *    - lastIngestionTime
  *
- * Query LIVE stream ; first write a few messages to, then read
+ * [ ] Query LIVE stream ; first write a few messages to, then read
  *    - firstEventTs / lastEventTs ; expect delayed
  *    - lastIngestionTime ; expect realtime
  *    - WAIT some time ( 2 hours )
  *    - query again; lastEventTs is now accurate.
  *
- * Query LIVE stream ; write data to it frequently.
+ * [ ] Query LIVE stream ; write data to it frequently.
  *     - Query stream & most recent log event a few times
  *     - assert ingestionTime ~correct-ish ( they are the same
  *          but we are querying two data structures in parallel

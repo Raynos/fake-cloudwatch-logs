@@ -135,6 +135,64 @@ test('can cache groups to disk', async (harness, t) => {
   )
 })
 
+test('can fetch from two regions', async (harness, t) => {
+  const server = harness.getServer()
+
+  server.populateGroups('123', 'us-east-1', [
+    harness.makeLogGroup()
+  ])
+  server.populateGroups('123', 'us-west-1', [
+    harness.makeLogGroup()
+  ])
+
+  const cw1 = harness.buildCWClient('123', 'us-east-1')
+  const cw2 = harness.buildCWClient('123', 'us-west-1')
+
+  const res1 = await cw1.describeLogGroups().promise()
+  const res2 = await cw2.describeLogGroups().promise()
+
+  t.ok(res1.logGroups)
+  assert(res1.logGroups)
+  t.equal(res1.logGroups.length, 1)
+  t.equal(res1.logGroups[0].logGroupName,
+    `my-log-group-${harness.gCounter - 2}`)
+
+  t.ok(res2.logGroups)
+  assert(res2.logGroups)
+  t.equal(res2.logGroups.length, 1)
+  t.equal(res2.logGroups[0].logGroupName,
+    `my-log-group-${harness.gCounter - 1}`)
+})
+
+test('can fetch from two profiles', async (harness, t) => {
+  const server = harness.getServer()
+
+  server.populateGroups('123', 'us-east-1', [
+    harness.makeLogGroup()
+  ])
+  server.populateGroups('abc', 'us-west-1', [
+    harness.makeLogGroup()
+  ])
+
+  const cw1 = harness.buildCWClient('123', 'us-east-1')
+  const cw2 = harness.buildCWClient('abc', 'us-west-1')
+
+  const res1 = await cw1.describeLogGroups().promise()
+  const res2 = await cw2.describeLogGroups().promise()
+
+  t.ok(res1.logGroups)
+  assert(res1.logGroups)
+  t.equal(res1.logGroups.length, 1)
+  t.equal(res1.logGroups[0].logGroupName,
+    `my-log-group-${harness.gCounter - 2}`)
+
+  t.ok(res2.logGroups)
+  assert(res2.logGroups)
+  t.equal(res2.logGroups.length, 1)
+  t.equal(res2.logGroups[0].logGroupName,
+    `my-log-group-${harness.gCounter - 1}`)
+})
+
 /**
  * @param {unknown} value
  * @returns {asserts value}
