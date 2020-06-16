@@ -270,6 +270,55 @@ test('can fetch in descending order', async (harness, t) => {
   )
 })
 
+test('can fetch with orderBy=LastEventTime', async (harness, t) => {
+  const cw = harness.getCW()
+
+  const logStreams = [...Array(30).keys()].map((_) => {
+    return harness.makeLogStream()
+  })
+  populateStreams(
+    harness, '123', 'us-east-1', 'test-group', logStreams
+  )
+
+  const res1 = await cw.describeLogStreams({
+    limit: 10,
+    logGroupName: 'test-group',
+    orderBy: 'LastEventTime'
+  }).promise()
+
+  t.ok(res1.logStreams)
+  t.ok(res1.nextToken)
+  assert(res1.logStreams)
+  t.equal(res1.logStreams.length, 10)
+  t.equal(
+    res1.logStreams[0].logStreamName,
+    `my-log-stream-${harness.gCounter - 30}`
+  )
+  t.equal(
+    res1.logStreams[9].logStreamName,
+    `my-log-stream-${harness.gCounter - 21}`
+  )
+
+  const res2 = await cw.describeLogStreams({
+    limit: 10,
+    logGroupName: 'test-group',
+    orderBy: 'LastEventTime',
+    nextToken: res1.nextToken
+  }).promise()
+  t.ok(res2.logStreams)
+  t.ok(res2.nextToken)
+  assert(res2.logStreams)
+  t.equal(res2.logStreams.length, 10)
+  t.equal(
+    res2.logStreams[0].logStreamName,
+    `my-log-stream-${harness.gCounter - 20}`
+  )
+  t.equal(
+    res2.logStreams[9].logStreamName,
+    `my-log-stream-${harness.gCounter - 11}`
+  )
+})
+
 test('can fetch with logStreamNamePrefix', async (harness, t) => {
   const logStreams = [
     harness.makeLogStream('test-stream-abc-1'),
@@ -331,6 +380,45 @@ test('query without logGroupname', async (harness, t) => {
     const err = toError(maybeErr)
     t.ok(err)
     t.equal(err.message, 'Missing required key \'logGroupName\' in params')
+  }
+})
+
+test('query with bad orderBy', async (harness, t) => {
+  const cw = harness.getCW()
+  try {
+    await cw.describeLogStreams({
+      logGroupName: 'foo',
+      orderBy: 'invalid'
+    }).promise()
+    t.fail()
+  } catch (maybeErr) {
+    const err = toError(maybeErr)
+    t.ok(err)
+    t.equal(err.message, 'Invalid required key \'orderBy\' in params')
+  }
+})
+
+test('query with orderBy & logStreamNamePrefix', async (harness, t) => {
+  const server = harness.getServer()
+  server.populateGroups('123', 'us-east-1', [
+    harness.makeLogGroup('foo')
+  ])
+  server.populateStreams('123', 'us-east-1', 'foo', [
+    harness.makeLogStream()
+  ])
+
+  const cw = harness.getCW()
+  try {
+    await cw.describeLogStreams({
+      logGroupName: 'foo',
+      logStreamNamePrefix: 'foobar',
+      orderBy: 'LastEventTime'
+    }).promise()
+    t.fail()
+  } catch (maybeErr) {
+    const err = toError(maybeErr)
+    t.ok(err)
+    t.equal(err.message, 'Cannot order by LastEventTime with a logStreamNamePrefix.')
   }
 })
 

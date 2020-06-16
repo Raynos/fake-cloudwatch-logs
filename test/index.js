@@ -17,7 +17,7 @@ require('./events.js')
  * [X] Query streams for two different profiles.
  * [X] Query streams with `logStreamNamePrefix`
  * [X] Query streams with `nextToken` pagination.
- * [ ] Query streams with `orderBy` property.
+ * [X] Query streams with `orderBy` property.
  *
  * [ ] Query streams when log events are being written and check
  * the state of the timestamps.

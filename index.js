@@ -529,7 +529,7 @@ class FakeCloudwatchLogs {
       } catch (maybeErr) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const err = /** @type {Error} */ (maybeErr)
-        res.statusCode = 500
+        res.statusCode = 400
         res.end(JSON.stringify({ message: err.message }))
         return
       }
@@ -644,6 +644,11 @@ class FakeCloudwatchLogs {
     if (!body.logGroupName) {
       throw new Error('Missing required key \'logGroupName\' in params')
     }
+    if (body.orderBy && body.orderBy !== 'LogStreamName' &&
+        body.orderBy !== 'LastEventTime'
+    ) {
+      throw new Error('Invalid required key \'orderBy\' in params')
+    }
 
     const creds = this._getCredentials(req)
     const key = `${creds.key}::${body.logGroupName}`
@@ -652,13 +657,22 @@ class FakeCloudwatchLogs {
     if (!streamsByGroup) {
       throw new Error('The specified log group does not exist.')
     }
-
     streamsByGroup = streamsByGroup.slice()
-    streamsByGroup.sort((a, b) => {
-      if (!a.logStreamName) return -1
-      if (!b.logStreamName) return 1
-      return a.logStreamName < b.logStreamName ? -1 : 1
-    })
+
+    if (!body.orderBy || body.orderBy === 'LogStreamName') {
+      streamsByGroup.sort((a, b) => {
+        if (!a.logStreamName) return -1
+        if (!b.logStreamName) return 1
+        return a.logStreamName < b.logStreamName ? -1 : 1
+      })
+    } else if (body.orderBy === 'LastEventTime') {
+      if (body.logStreamNamePrefix) {
+        throw new Error(
+          'Cannot order by LastEventTime with a logStreamNamePrefix.'
+        )
+      }
+    }
+
     if (body.descending) {
       streamsByGroup.reverse()
     }
