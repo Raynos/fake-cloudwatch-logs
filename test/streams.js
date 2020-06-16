@@ -1,12 +1,6 @@
 // @ts-check
 'use strict'
 
-/**
-   @typedef {
-      import('aws-sdk').CloudWatchLogs.LogStream
- * } LogStream
- */
-
 const { test } = require('./test-harness.js')
 
 test('can fetch cloudwatch streams', async (harness, t) => {
@@ -37,11 +31,9 @@ test('can fetch cloudwatch streams', async (harness, t) => {
 test('can fetch two batches of streams', async (harness, t) => {
   const cw = harness.getCW()
 
-  /** @type {LogStream[]} */
-  const logStreams = []
-  for (let i = 0; i < 30; i++) {
-    logStreams.push(harness.makeLogStream())
-  }
+  const logStreams = [...Array(30).keys()].map((_) => {
+    return harness.makeLogStream()
+  })
   populateStreams(harness, 'test-group', logStreams)
 
   const res1 = await cw.describeLogStreams({
@@ -84,11 +76,9 @@ test('can cache streams to disk', async (harness, t) => {
   const cw = harness.getCW()
   const server = harness.getServer()
 
-  /** @type {LogStream[]} */
-  const logStreams = []
-  for (let i = 0; i < 30; i++) {
-    logStreams.push(harness.makeLogStream())
-  }
+  const logStreams = Array.from(Array(30), () => {
+    return harness.makeLogStream()
+  })
 
   await server.cacheStreamsToDisk(
     '123', 'us-east-1', 'test-group', logStreams
@@ -116,7 +106,7 @@ test('can cache streams to disk', async (harness, t) => {
 /**
  * @param {import('./test-harness').TestHarness} harness
  * @param {string} logGroupName
- * @param {LogStream[]} streams
+ * @param {import('aws-sdk').CloudWatchLogs.LogStream[]} streams
  * @returns {void}
  */
 function populateStreams (
