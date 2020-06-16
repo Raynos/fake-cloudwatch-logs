@@ -631,9 +631,7 @@ class FakeCloudwatchLogs {
       JSON.parse(bodyStr)
     )
 
-    // TODO: default sort
     // TODO: req.logStreamNamePrefix
-    // TODO: req.descending
     // TODO: req.orderBy
 
     const creds = this._getCredentials(req)
@@ -652,6 +650,14 @@ class FakeCloudwatchLogs {
     })
     if (body.descending) {
       streamsByGroup.reverse()
+    }
+
+    if (body.logStreamNamePrefix) {
+      const prefix = body.logStreamNamePrefix
+      streamsByGroup = streamsByGroup.filter((s) => {
+        return s.logStreamName &&
+          s.logStreamName.startsWith(prefix)
+      })
     }
 
     const page = this.paginate(

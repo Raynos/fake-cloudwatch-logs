@@ -266,6 +266,56 @@ test('can fetch in descending order', async (harness, t) => {
   )
 })
 
+test('can fetch with logStreamNamePrefix', async (harness, t) => {
+  const logStreams = [
+    harness.makeLogStream('test-stream-abc-1'),
+    harness.makeLogStream('test-stream-abc-2'),
+    harness.makeLogStream('test-stream-def-3'),
+    harness.makeLogStream('test-stream-def-4'),
+    harness.makeLogStream('test-stream-5'),
+    harness.makeLogStream('test-stream-6'),
+    harness.makeLogStream('test-junk-stream-1'),
+    harness.makeLogStream('test-junk-stream-2')
+  ]
+  populateStreams(
+    harness, '123', 'us-east-1', 'test-group', logStreams
+  )
+
+  const cw = harness.getCW()
+  const res1 = await cw.describeLogStreams({
+    logGroupName: 'test-group',
+    logStreamNamePrefix: 'test-stream-'
+  }).promise()
+  const res2 = await cw.describeLogStreams({
+    logGroupName: 'test-group',
+    logStreamNamePrefix: 'test-stream-abc'
+  }).promise()
+  const res3 = await cw.describeLogStreams({
+    logGroupName: 'test-group',
+    logStreamNamePrefix: 'test-stream-def'
+  }).promise()
+
+  assert(res1.logStreams)
+  assert(res2.logStreams)
+  assert(res3.logStreams)
+
+  t.equal(res1.logStreams.length, 6)
+  t.equal(res2.logStreams.length, 2)
+  t.equal(res3.logStreams.length, 2)
+
+  t.deepEqual(res1.logStreams.map(s => s.logStreamName), [
+    'test-stream-5', 'test-stream-6',
+    'test-stream-abc-1', 'test-stream-abc-2',
+    'test-stream-def-3', 'test-stream-def-4'
+  ])
+  t.deepEqual(res2.logStreams.map(s => s.logStreamName), [
+    'test-stream-abc-1', 'test-stream-abc-2'
+  ])
+  t.deepEqual(res3.logStreams.map(s => s.logStreamName), [
+    'test-stream-def-3', 'test-stream-def-4'
+  ])
+})
+
 /**
  * @param {import('./test-harness').TestHarness} harness
  * @param {string} profile

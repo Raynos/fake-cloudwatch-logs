@@ -10,13 +10,13 @@ require('./events.js')
  * [x] Query groups for two regions
  * [x] Query groups for two profiles / accountIds
  *
- * [ ] Query streams with `Descending` property.
+ * [X] Query streams with `Descending` property.
  * [X] Query streams with `Limit` property.
  * [X] Query streams for two different groups.
  * [X] Query streams for two different regions.
  * [X] Query streams for two different profiles.
  * [ ] Query streams with `logStreamNamePrefix`
- * [ ] Query streams with `nextToken` pagination.
+ * [X] Query streams with `nextToken` pagination.
  * [ ] Query streams with `orderBy` property.
  *
  * [ ] Query streams when log events are being written and check
