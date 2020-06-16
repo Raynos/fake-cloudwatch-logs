@@ -12,16 +12,16 @@
   },
   "dependencies": {},
   "binDependencies": {
+    "tsdocstandard": "15.5.2",
     "type-coverage": "2.4.3",
-    "typescript": "3.9.2",
-    "tsdocstandard": "15.4.2"
+    "typescript": "3.9.5"
   },
   "devDependencies": {
     "@pre-bundled/rimraf": "3.0.0",
     "@pre-bundled/tape": "4.10.2",
     "@types/node": "14.0.13",
     "aws-sdk": "2.549.0",
-    "npm-bin-deps": "1.6.0",
+    "npm-bin-deps": "1.9.0",
     "tape-cluster": "3.2.1"
   },
   "tsdocstandard": {

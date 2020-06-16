@@ -60,11 +60,6 @@ class FakeCloudwatchLogs {
   }
 
   /**
-   * TODO: Add fetchAndCache()
-   * TODO: Add getAllRegions()
-   */
-
-  /**
    * @param {import('aws-sdk')} AWS
    * @returns {Promise<string[]>}
    */
