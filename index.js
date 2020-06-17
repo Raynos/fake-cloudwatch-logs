@@ -67,6 +67,8 @@ class FakeCloudwatchLogs {
     this.rawEvents = {}
     /** @type {Record<string, { offset: number }|undefined>} */
     this.tokens = {}
+    /** @type {number} */
+    this.gCounter = 0
 
     /** @type {number} */
     this.ingestionDelay = options.ingestionDelay || INGESTION_DELAY
@@ -813,6 +815,57 @@ class FakeCloudwatchLogs {
       nextBackwardToken
     }
     return res
+  }
+
+  /**
+   * @param {string} [name]
+   * @returns {LogGroup}
+   */
+  makeLogGroup (name) {
+    const logGroupName = name || `my-log-group-${this.gCounter++}`
+    return {
+      logGroupName,
+      creationTime: Date.now(),
+      metricFilterCount: 0,
+      arn: `arn:aws:logs:us-east-1:0:log-group:${logGroupName}:*`,
+      // tslint:disable-next-line: insecure-random
+      storedBytes: Math.floor(Math.random() * 1024 * 1024)
+    }
+  }
+
+  /**
+   * @param {string} [name]
+   * @returns {LogStream}
+   */
+  makeLogStream (name) {
+    const logStreamName = name || `my-log-stream-${this.gCounter++}`
+    return {
+      logStreamName,
+      creationTime: Date.now(),
+      firstEventTimestamp: undefined,
+      lastEventTimestamp: undefined,
+      lastIngestionTime: undefined,
+      arn: 'arn:aws:logs:us-east-1:0:log-group:???:' +
+        `log-stream:${logStreamName}`,
+      uploadSequenceToken: (
+        Math.random().toString() + Math.random().toString() +
+        Math.random().toString() + Math.random().toString()
+      ).replace(/\./g, ''),
+      storedBytes: Math.floor(Math.random() * 1024 * 1024)
+    }
+  }
+
+  /**
+   * @param {number} [timeOffset]
+   * @returns {OutputLogEvent}
+   */
+  makeLogEvent (timeOffset) {
+    timeOffset = timeOffset || 0
+    return {
+      timestamp: Date.now() - timeOffset,
+      ingestionTime: Date.now(),
+      message: `[INFO]: A log message: ${this.gCounter++}`
+    }
   }
 
   // TODO: getLogGroupFields ?

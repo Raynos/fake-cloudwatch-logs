@@ -4,7 +4,7 @@
 /**
  * TODO: tests
  *
- * [ ] Query streams when log events are being written and check
+ * [X] Query streams when log events are being written and check
  * the state of the timestamps.
  *
  * [ ] Query HISTORICAL stream
@@ -68,10 +68,6 @@ test('can fetch logStream info in realtime', async (harness, t) => {
   const events3 = events.filter((e) => {
     return e.ingestionTime && e.ingestionTime <= streams[2].ts
   }).reverse()
-
-  // console.log('ets', events.map(e => e.ingestionTime))
-  // console.log('sts', streams.map(s => s.ts))
-  // console.log('len', events1.length, events2.length, events3.length)
 
   t.equal(
     events1[0].ingestionTime, streams[0].stream.lastIngestionTime,

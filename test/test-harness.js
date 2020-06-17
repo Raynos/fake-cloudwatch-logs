@@ -20,9 +20,6 @@ const { FakeCloudwatchLogs } = require('../index.js')
  * @typedef {
       import('aws-sdk').CloudWatchLogs.LogStream
  * } LogStream
- * @typedef {
-       import('aws-sdk').CloudWatchLogs.LogGroup
- * } LogGroup
  */
 
 class TestHarness {
@@ -34,8 +31,6 @@ class TestHarness {
     })
     /** @type {AWS.CloudWatchLogs | null} */
     this.cw = null
-    /** @type {number} */
-    this.gCounter = 0
 
     /** @type {Mutex} */
     this.pollingMutex = new Mutex()
@@ -60,6 +55,11 @@ class TestHarness {
       accessKeyId: accessKeyId,
       secretAccessKey: 'abc'
     })
+  }
+
+  /** @returns {number} */
+  get gCounter () {
+    return this.getServer().gCounter
   }
 
   /** @returns {FakeCloudwatchLogs} */
@@ -116,18 +116,10 @@ class TestHarness {
 
   /**
    * @param {string} [name]
-   * @returns {LogGroup}
+   * @returns {import('aws-sdk').CloudWatchLogs.LogGroup}
    */
   makeLogGroup (name) {
-    const logGroupName = name || `my-log-group-${this.gCounter++}`
-    return {
-      logGroupName,
-      creationTime: Date.now(),
-      metricFilterCount: 0,
-      arn: `arn:aws:logs:us-east-1:0:log-group:${logGroupName}:*`,
-      // tslint:disable-next-line: insecure-random
-      storedBytes: Math.floor(Math.random() * 1024 * 1024)
-    }
+    return this.getServer().makeLogGroup(name)
   }
 
   /**
@@ -135,22 +127,7 @@ class TestHarness {
    * @returns {LogStream}
    */
   makeLogStream (name) {
-    const logStreamName = name || `my-log-stream-${this.gCounter++}`
-    return {
-      logStreamName,
-      creationTime: Date.now(),
-      firstEventTimestamp: undefined,
-      lastEventTimestamp: undefined,
-      lastIngestionTime: undefined,
-      arn: 'arn:aws:logs:us-east-1:0:log-group:???:' +
-        `log-stream:${logStreamName}`,
-      uploadSequenceToken: (
-        Math.random().toString() + Math.random().toString() +
-        Math.random().toString() + Math.random().toString()
-      ).replace(/\./g, ''),
-      // tslint:disable-next-line: insecure-random
-      storedBytes: Math.floor(Math.random() * 1024 * 1024)
-    }
+    return this.getServer().makeLogStream(name)
   }
 
   /**
@@ -158,12 +135,7 @@ class TestHarness {
    * @returns {OutputLogEvent}
    */
   makeLogEvent (timeOffset) {
-    timeOffset = timeOffset || 0
-    return {
-      timestamp: Date.now() - timeOffset,
-      ingestionTime: Date.now(),
-      message: `[INFO]: A log message: ${this.gCounter++}`
-    }
+    return this.getServer().makeLogEvent(timeOffset)
   }
 
   /**
