@@ -31,9 +31,19 @@ const readFileP = util.promisify(fs.readFile)
 const readdirP = util.promisify(fs.readdir)
 const stripCreds = /Credential=([\w-/0-9a-zA-Z]+),/
 
+const SECOND = 1000
+const MINUTE = 60 * SECOND
+const HOUR = 60 * MINUTE
+
+const INGESTION_DELAY = 1 * HOUR
+
 class FakeCloudwatchLogs {
   /**
-   * @param {{ port?: number, cachePath?: string }} options
+     @param {{
+        port?: number,
+        cachePath?: string,
+        ingestionDelay?: number
+   * }} options
    */
   constructor (options = {}) {
     /** @type {http.Server | null} */
@@ -57,6 +67,9 @@ class FakeCloudwatchLogs {
     this.rawEvents = {}
     /** @type {Record<string, { offset: number }|undefined>} */
     this.tokens = {}
+
+    /** @type {number} */
+    this.ingestionDelay = options.ingestionDelay || INGESTION_DELAY
   }
 
   /**
@@ -439,13 +452,25 @@ class FakeCloudwatchLogs {
       }
     }
 
+    if (stream.firstEventTimestamp) {
+      if (youngestTs !== stream.firstEventTimestamp) {
+        throw new Error(
+          'Cannot populateEvents() that are younger then existing events'
+        )
+      }
+    } else {
+      stream.firstEventTimestamp = youngestTs
+    }
+
     stream.lastIngestionTime = oldestIngestion
-    /**
-     *  TODO: @Raynos ; emulate staleness of this field.
-     *  This field is delayed by ~1hour in production.
-     */
-    stream.lastEventTimestamp = oldestTs
-    stream.firstEventTimestamp = youngestTs
+
+    if (!stream.lastEventTimestamp) {
+      stream.lastEventTimestamp = oldestTs
+    } else {
+      if (oldestTs > oldestIngestion + this.ingestionDelay) {
+        stream.lastEventTimestamp = oldestTs
+      }
+    }
   }
 
   /** @returns {Promise<string>} */

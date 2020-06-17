@@ -77,6 +77,8 @@ test('can fetch logStream info in realtime', async (harness, t) => {
     events1[0].ingestionTime, streams[0].stream.lastIngestionTime,
     'first stream ingestionTime correct'
   )
+  t.equal(streams[0].stream.firstEventTimestamp, evs[0].timestamp)
+  t.equal(streams[0].stream.lastEventTimestamp, evs[2].timestamp)
 
   /**
    * Most of the time there were 3 events published between
@@ -93,6 +95,8 @@ test('can fetch logStream info in realtime', async (harness, t) => {
     events2[0].ingestionTime, streams[1].stream.lastIngestionTime,
     'second stream ingestionTime correct'
   )
+  t.equal(streams[1].stream.firstEventTimestamp, evs[0].timestamp)
+  t.equal(streams[1].stream.lastEventTimestamp, evs[2].timestamp)
   t.ok(
     events3.length - events2.length >= 2 &&
     events3.length - events2.length <= 3,
@@ -102,4 +106,6 @@ test('can fetch logStream info in realtime', async (harness, t) => {
     events3[0].ingestionTime, streams[2].stream.lastIngestionTime,
     'third stream ingestionTime correct'
   )
+  t.equal(streams[2].stream.firstEventTimestamp, evs[0].timestamp)
+  t.equal(streams[2].stream.lastEventTimestamp, evs[2].timestamp)
 })

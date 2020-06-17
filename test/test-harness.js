@@ -139,9 +139,9 @@ class TestHarness {
     return {
       logStreamName,
       creationTime: Date.now(),
-      firstEventTimestamp: Date.now(),
-      lastEventTimestamp: Date.now(),
-      lastIngestionTime: Date.now(),
+      firstEventTimestamp: undefined,
+      lastEventTimestamp: undefined,
+      lastIngestionTime: undefined,
       arn: 'arn:aws:logs:us-east-1:0:log-group:???:' +
         `log-stream:${logStreamName}`,
       uploadSequenceToken: (
