@@ -36,6 +36,9 @@ class TestHarness {
     this.cw = null
     /** @type {number} */
     this.gCounter = 0
+
+    /** @type {Mutex} */
+    this.pollingMutex = new Mutex()
   }
 
   /** @returns {Promise<void>} */
@@ -93,6 +96,25 @@ class TestHarness {
   }
 
   /**
+   * @param {string} logGroupName
+   * @param {string} logStreamName
+   * @param {OutputLogEvent[]} events
+   * @returns {void}
+   */
+  populateEvents (logGroupName, logStreamName, events) {
+    const server = this.getServer()
+    server.populateGroups(
+      '123', 'us-east-1', [this.makeLogGroup(logGroupName)]
+    )
+    server.populateStreams('123', 'us-east-1', logGroupName, [
+      this.makeLogStream(logStreamName)
+    ])
+    server.populateEvents(
+      '123', 'us-east-1', logGroupName, logStreamName, events
+    )
+  }
+
+  /**
    * @param {string} [name]
    * @returns {LogGroup}
    */
@@ -143,6 +165,75 @@ class TestHarness {
       message: `[INFO]: A log message: ${this.gCounter++}`
     }
   }
+
+  /**
+     @param {{
+        delay: number;
+        count: number;
+        logGroupName: string;
+        logStreamName: string;
+        allocate?: () => OutputLogEvent;
+   * }} options
+   * @returns {Promise<OutputLogEvent[]>}
+   */
+  async writeStreamingEvents (options) {
+    const server = this.getServer()
+    const allocate = options.allocate || (() => this.makeLogEvent())
+    let insertsLeft = options.count
+
+    /** @type {OutputLogEvent[]} */
+    const events = []
+
+    do {
+      await sleep(options.delay)
+      await this.pollingMutex.do(() => {
+        const event = allocate()
+        events.push(event)
+        server.populateEvents(
+          '123', 'us-east-1',
+          options.logGroupName, options.logStreamName, [event]
+        )
+      })
+    } while (--insertsLeft > 0)
+
+    return events
+  }
+
+  /**
+     @param {{
+        delay: number;
+        count: number;
+        logGroupName: string;
+        logStreamName: string;
+   * }} options
+   * @returns {Promise<{ stream: LogStream, ts: number }[]>}
+   */
+  async readStreamInterval (options) {
+    const cw = this.getCW()
+    let readsLeft = options.count
+
+    /** @type {{ts: number, stream: LogStream}[]} */
+    const streams = []
+
+    do {
+      await sleep(options.delay)
+      await this.pollingMutex.do(async () => {
+        const ts = Date.now()
+        const res = await cw.describeLogStreams({
+          logGroupName: options.logGroupName,
+          logStreamNamePrefix: options.logStreamName
+        }).promise()
+        if (!res.logStreams) return
+        const stream = res.logStreams.find((s) => {
+          return s.logStreamName === options.logStreamName
+        })
+        if (!stream) return
+        streams.push({ ts, stream })
+      })
+    } while (--readsLeft > 0)
+
+    return streams
+  }
 }
 exports.TestHarness = TestHarness
 
@@ -160,4 +251,38 @@ function cuuid () {
   return str.slice(0, 8) + '-' + str.slice(8, 12) + '-' +
     str.slice(12, 16) + '-' + str.slice(16, 20) + '-' +
     str.slice(20)
+}
+
+/**
+ * @param {number} ms
+ * @returns {Promise<void>}
+ */
+function sleep (ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+class Mutex {
+  constructor () {
+    /** @type {Promise<void>|null} */
+    this.pendingOperation = null
+  }
+
+  /**
+   * @param {() => void | Promise<void>} operation
+   * @returns {Promise<void>}
+   */
+  async do (operation) {
+    while (this.pendingOperation) await this.pendingOperation
+
+    const promise = operation()
+    if (promise && typeof promise.then === 'function') {
+      this.pendingOperation = promise
+      const result = await promise
+      this.pendingOperation = null
+      return result
+    }
+    return promise
+  }
 }
