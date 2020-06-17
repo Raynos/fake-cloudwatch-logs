@@ -22,7 +22,7 @@ test('can fetch log events', async (harness, t) => {
   t.ok(res1)
   t.deepEqual(res1.events, [])
 
-  populateEvents(harness, 'test-group', 'test-stream', [
+  harness.populateEvents('test-group', 'test-stream', [
     harness.makeLogEvent()
   ])
 
@@ -48,7 +48,7 @@ test('can fetch uneven pages of log events', async (harness, t) => {
   for (let i = 0; i < 100; i++) {
     logEvents.push(harness.makeLogEvent(100 - i))
   }
-  populateEvents(harness, 'test-group', 'test-stream', logEvents)
+  harness.populateEvents('test-group', 'test-stream', logEvents)
 
   /** @type {Array<OutputLogEvent[]>} */
   const pages = []
@@ -83,7 +83,7 @@ test('can fetch pages of log events', async (harness, t) => {
   for (let i = 0; i < 50; i++) {
     logEvents.push(harness.makeLogEvent(50 - i))
   }
-  populateEvents(harness, 'test-group', 'test-stream', logEvents)
+  harness.populateEvents('test-group', 'test-stream', logEvents)
 
   const res1 = await cw.getLogEvents({
     limit: 10,
@@ -260,7 +260,7 @@ test('can fetch log events by startTime & endTime',
     for (let i = 0; i < 100; i++) {
       logEvents.push(harness.makeLogEvent(100 - i))
     }
-    populateEvents(harness, 'test-group', 'test-stream', logEvents)
+    harness.populateEvents('test-group', 'test-stream', logEvents)
 
     const startTime = logEvents[20].timestamp
     const endTime = logEvents[30].timestamp
@@ -286,28 +286,6 @@ test('can fetch log events by startTime & endTime',
     )
   }
 )
-
-/**
- * @param {import('./test-harness').TestHarness} harness
- * @param {string} logGroupName
- * @param {string} logStreamName
- * @param {OutputLogEvent[]} events
- * @returns {void}
- */
-function populateEvents (
-  harness, logGroupName, logStreamName, events
-) {
-  const server = harness.getServer()
-  server.populateGroups(
-    '123', 'us-east-1', [harness.makeLogGroup(logGroupName)]
-  )
-  server.populateStreams('123', 'us-east-1', logGroupName, [
-    harness.makeLogStream(logStreamName)
-  ])
-  server.populateEvents(
-    '123', 'us-east-1', logGroupName, logStreamName, events
-  )
-}
 
 /**
  * @param {unknown} value
