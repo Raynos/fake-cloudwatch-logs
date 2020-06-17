@@ -181,7 +181,6 @@ class TestHarness {
    * @returns {Promise<{ stream: LogStream, ts: number }[]>}
    */
   async readStreamInterval (options) {
-    const cw = this.getCW()
     let readsLeft = options.count
 
     /** @type {{ts: number, stream: LogStream}[]} */
@@ -190,22 +189,44 @@ class TestHarness {
     do {
       await sleep(options.delay)
       await this.pollingMutex.do(async () => {
-        const ts = Date.now()
-        const res = await cw.describeLogStreams({
-          logGroupName: options.logGroupName,
-          logStreamNamePrefix: options.logStreamName
-        }).promise()
-        if (!res.logStreams) return
-        const stream = res.logStreams.find((s) => {
-          return s.logStreamName === options.logStreamName
-        })
-        if (!stream) return
-        streams.push({ ts, stream })
+        const pair = await this.getLogStream(
+          options.logGroupName, options.logStreamName
+        )
+        if (!pair) return
+        streams.push(pair)
       })
     } while (--readsLeft > 0)
 
     return streams
   }
+
+  /**
+   * @param {string} logGroupName
+   * @param {string} logStreamName
+   * @returns {Promise<{ ts: number; stream: LogStream }|undefined>}
+   */
+  async getLogStream (logGroupName, logStreamName) {
+    return this.pollingMutex.do(async () => {
+      const cw = this.getCW()
+      const ts = Date.now()
+      const res = await cw.describeLogStreams({
+        logGroupName: logGroupName,
+        logStreamNamePrefix: logStreamName
+      }).promise()
+      if (!res.logStreams) return
+      const stream = res.logStreams.find((s) => {
+        return s.logStreamName === logStreamName
+      })
+      if (!stream) return
+      return { stream, ts }
+    })
+  }
+
+  /**
+   * @param {number} ms
+   * @returns {Promise<void>}
+   */
+  sleep (ms) { return sleep(ms) }
 }
 exports.TestHarness = TestHarness
 
@@ -237,19 +258,22 @@ function sleep (ms) {
 
 class Mutex {
   constructor () {
-    /** @type {Promise<void>|null} */
+    /** @type {Promise<unknown>|null} */
     this.pendingOperation = null
   }
 
   /**
-   * @param {() => void | Promise<void>} operation
-   * @returns {Promise<void>}
+   * @template T
+   * @param {() => T | Promise<T>} operation
+   * @returns {Promise<T>}
    */
   async do (operation) {
     while (this.pendingOperation) await this.pendingOperation
 
     const promise = operation()
-    if (promise && typeof promise.then === 'function') {
+    if (promise && 'then' in promise &&
+        typeof promise.then === 'function'
+    ) {
       this.pendingOperation = promise
       const result = await promise
       this.pendingOperation = null
