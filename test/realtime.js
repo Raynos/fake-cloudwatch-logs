@@ -186,19 +186,20 @@ test('can query logStream info for LIVE stream', {
 
   t.equal(stream3.stream.lastIngestionTime, events2[0].ingestionTime)
   t.equal(stream3.stream.firstEventTimestamp, evs[0].timestamp)
+
+  const recentEvents = events2.filter((e) => {
+    return events1.every((e2) => e2.timestamp !== e.timestamp)
+  })
+
   /**
-   * This assertion might fail because events2[1] / events2[2]
-   * is related to the 30ms ingestionDelay
+   * This assertion might fail most of the time the lastEventTimestamp
+   * is `events2[1].timestamp` but sometimes its one of the timestamps
+   * that happened AFTER `events1`
    */
   t.ok(
-    stream3.stream.lastEventTimestamp === events2[1].timestamp ||
-    stream3.stream.lastEventTimestamp === events2[2].timestamp ||
-    // Sometimes events2.length === 7 instead of === 6
-    stream3.stream.lastEventTimestamp ===
-      events2[events2.length - 4].timestamp ||
-    // Sometimes events2.length === 5
-    (events2.length < 6 && stream3.stream.lastEventTimestamp ===
-      events2[0].timestamp),
+    recentEvents.some((event) => {
+      return event.timestamp === stream3.stream.lastEventTimestamp
+    }),
     'Expect stream3 lastEventTimestamp to be updated'
   )
 })
