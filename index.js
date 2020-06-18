@@ -154,6 +154,7 @@ class FakeCloudwatchLogs {
         nextToken = streams.nextToken
       } while (nextToken)
 
+      if (allStreams.length === 0) continue
       await this.cacheStreamsToDisk(
         profile, region, group.logGroupName, allStreams
       )
@@ -186,6 +187,7 @@ class FakeCloudwatchLogs {
           backwardToken = events.nextBackwardToken
         } while (backwardToken)
 
+        if (allEvents.length === 0) continue
         await this.cacheEventsToDisk(
           profile, region, group.logGroupName,
           stream.logStreamName, allEvents
