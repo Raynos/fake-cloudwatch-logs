@@ -9,25 +9,30 @@ const AWS = require('aws-sdk')
 const path = require('path')
 const { FakeCloudwatchLogs } = require('fake-cloudwatch-logs')
 
+const ACCESS_KEY = '123'
+
 async function test() {
+  const region = 'us-east-1'
   const server = new FakeCloudwatchLogs({
-    port: 0
+    port: 0,
+    cachePath: path.join(__dirname, 'cw-fixtures')
   })
 
-  server.populateGroups([...])
-  server.populateStreams('my-group', [...])
-  server.populateLogEvents('my-group', 'my-stream', [...])
+  server.populateGroups(ACCESS_KEY, region, [...])
+  server.populateStreams(ACCESS_KEY, region, 'my-group', [...])
+  server.populateLogEvents(
+    ACCESS_KEY, region, 'my-group', 'my-stream', [...]
+  )
 
-  const cachePath = path.join(__dirname, 'cw-fixtures')
-  await server.populateFromCache(cachePath)
+  await server.populateFromCache()
   await server.bootstrap()
 
   const cw = new AWS.CloudwatchLogs({
-    region: 'us-east-1',
+    region: region,
     endpoint: `http://${server.hostPort}`,
     sslEnabled: false,
-    accessKey: 'abc',
-    secretAccessKey: '123'
+    accessKey: ACCESS_KEY,
+    secretAccessKey: 'abc'
   })
 
   const groups = await cw.describeLogGroups().promise()
@@ -101,38 +106,14 @@ const FakeCloudWatchLogs =
   require('fake-cloudwatch-logs').FakeCloudwatchLogs
 
 async function main () {
-  const fakeCW = new FakeCloudWatchLogs()
-  // Use production cloudwatch logs aws client to fetch data
-  // and then cache them into a fixtures directory.
-  const cw = new AWS.CloudWatchLogs({
-    region: 'us-east-1'
+  const fakeCW = new FakeCloudWatchLogs({
+    cachePath: path.join(__dirname, '..', 'fixtures')
   })
+  await fakeCW.populateFromCache()
 
-  const cachePath = path.join(__dirname, '..', 'fixtures')
-
-  // Cache groups
-  const groups = await cw.describeLogGroups().promise()
-  await fakeCW.cacheGroupsToDisk(cachePath, groups.logGroups)
-
-  // Cache streams
-  const rawGroups = fakeCW.rawGroups
-  for (const g of rawGroups) {
-    let streams
-    let allStreams = []
-    do {
-      streams = await cw.describeLogStreams({
-        logGroupName: g.logGroupName,
-        nextToken: streams && streams.nextToken
-          ? streams.nextToken : undefined
-      }).promise()
-
-      allStreams.push(...streams.logStreams)
-    } while (streams && streams.nextToken)
-
-    await fakeCW.cacheStreamsToDisk(
-      cachePath, g.logGroupName, allStreams
-    )
-  }
+  // 'all' regions or ['us-east-1']
+  // await fakeCW.fetchAndCache(AWS, ['us-east-1'])
+  await fakeCW.fetchAndCache(AWS, 'all')
 }
 
 main().then(null, (err) => {
@@ -148,6 +129,7 @@ Creates a fake Cloudwatch logs server listening on the port
 your specified.
 
  - `options.port`; port to lsiten on, defaults to 0
+ - `options.cachePath`; the location to read/write fixtures to.
 
 ### `await server.bootstrap()`
 
@@ -160,69 +142,34 @@ port 0.
 
 Closes the http server.
 
-### `server.populateGroups(groups)`
+### `server.populateGroups(accessKey, region, groups)`
 
 Adds groups to the in-memory server. The group must be a valid
 `LogGroup`
 
 ```js
-let gCounter = 0
-function makeLogGroup() {
-    const logGroupName = `my-log-group-${gCounter++}`;
-    return {
-        logGroupName,
-        creationTime: Date.now(),
-        metricFilterCount: 0,
-        arn: `arn:aws:logs:us-east-1:0:log-group:${logGroupName}:*`,
-        storedBytes: Math.floor(Math.random() * 1024 * 1024)
-    };
-}
+const group = server.makeLogGroup(name)
 ```
 
-### `server.populateStreams(groupName, streams)`
+### `server.populateStreams(accessKey, region, groupName, streams)`
 
 Adds streams to the in-memory server that belong to the `groupName`.
 The streams must be a valid `LogStream`
 
 ```js
-let gCounter = 0
-function makeLogStream() {
-    const logStreamName = `my-log-stream-${gCounter++}`;
-    return {
-        logStreamName,
-        creationTime: Date.now(),
-        firstEventTimestamp: Date.now(),
-        lastEventTimestamp: Date.now(),
-        lastIngestionTime: Date.now(),
-        arn: 'arn:aws:logs:us-east-1:0:log-group:???:' +
-            `log-stream:${logStreamName}`,
-        uploadSequenceToken: (
-            Math.random().toString() + Math.random().toString() +
-            Math.random().toString() + Math.random().toString()
-        ).replace(/\./g, ''),
-        storedBytes: Math.floor(Math.random() * 1024 * 1024)
-    };
-}
+const stream = server.makeLogStream(name)
 ```
 
-### `server.populateEvents(groupName, streamName, events)`
+### `server.populateEvents(accessKey, region, groupName, streamName, events)`
 
 Adds events to the in-memory server that belong to the `groupName`
 and the `streamName`. The events must be a valid `OutputLogEvent`
 
 ```js
-let gCounter = 0
-function makeLogEvent(timeOffset) {
-    timeOffset = timeOffset || 0;
-    return {
-        timestamp: Date.now() - timeOffset,
-        ingestionTime: Date.now(),
-        message: `[INFO]: A log message: ${gCounter++}`
-    };
-}
+const event = server.makeLogEvent()
 ```
 
-### `await server.populateFromCache(cacheDir)`
+### `await server.populateFromCache()`
 
 This will have the server fetch groups, streams & events from
 a cache on disk. This can be useful for writing tests with fixtures
@@ -230,6 +177,15 @@ or for starting a local server that loads fixtures from disk.
 
 It's recommende you use the `cacheXToDisk()` methods to create
 the fixtures.
+
+### `await server.fetchAndCache(AWS, regions)`
+
+If you want to fetch and cache data from production into
+a `fixtures` directory you can call `fetchAndCache()` with
+the `AWS` sdk and with the regions you want to cache.
+
+You can pass `['us-east-1']` etc as a the regions or the string
+`'all'` if you want to fetch all regions.
 
 ### `await server.cacheGroupsToDisk(cacheDir, groups)`
 
@@ -246,6 +202,7 @@ This will write streams to disk in the cache directory for the
 This will write events to disk in the cache directory for the
 `groupName` and `streamName` you specify. The streams must be
 valid `OutputLogEvent` ;
+
 
 ## install
 
