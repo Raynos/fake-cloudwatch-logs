@@ -1,25 +1,6 @@
 // @ts-check
 'use strict'
 
-/**
- * TODO: tests
- *
- * [X] Query streams when log events are being written and check
- * the state of the timestamps.
- *
- * [X] Query HISTORICAL stream
- *    - firstEventTs
- *    - lastEventTs
- *    - creationTime
- *    - lastIngestionTime
- *
- * [X] Query LIVE stream ; first write a few messages to, then read
- *    - firstEventTs / lastEventTs ; expect delayed
- *    - lastIngestionTime ; expect realtime
- *    - WAIT some time ( 2 hours )
- *    - query again; lastEventTs is now accurate.
- */
-
 /** @type {import('assert')} */
 const assert = require('assert')
 
