@@ -13,24 +13,15 @@
  *    - creationTime
  *    - lastIngestionTime
  *
- * [ ] Query LIVE stream ; first write a few messages to, then read
+ * [X] Query LIVE stream ; first write a few messages to, then read
  *    - firstEventTs / lastEventTs ; expect delayed
  *    - lastIngestionTime ; expect realtime
  *    - WAIT some time ( 2 hours )
  *    - query again; lastEventTs is now accurate.
- *
- * [ ] Query LIVE stream ; write data to it frequently.
- *     - Query stream & most recent log event a few times
- *     - assert ingestionTime ~correct-ish ( they are the same
- *          but we are querying two data structures in parallel
- *          so we might have newer or older logs dependent
- *          on timing of parallel reads.)
- *     - assert lastEventTs stale.
- *
  */
 
-// /** @type {import('assert')} */
-// const assert = require('assert')
+/** @type {import('assert')} */
+const assert = require('assert')
 
 const { test } = require('./test-harness.js')
 
@@ -158,60 +149,72 @@ test('can fetch logStream info for HISTORICAL stream',
   }
 )
 
-test('can query logStream info for LIVE stream',
-  async (harness, t) => {
-    const evs = Array.from(Array(3), () => {
-      return harness.makeLogEvent()
-    })
-    harness.populateEvents('test-group', 'test-stream', evs)
+test('can query logStream info for LIVE stream', {
+  ingestionDelay: 30
+}, async (harness, t) => {
+  const evs = Array.from(Array(3), () => {
+    return harness.makeLogEvent()
+  })
+  harness.populateEvents('test-group', 'test-stream', evs)
 
-    const stream1 = await harness.getLogStream(
-      'test-group', 'test-stream'
-    )
+  const stream1 = await harness.getLogStream(
+    'test-group', 'test-stream'
+  )
 
-    const p = harness.writeStreamingEvents({
-      delay: 6,
-      count: 10,
-      logGroupName: 'test-group',
-      logStreamName: 'test-stream',
-      allocate: () => harness.makeLogEvent()
-    })
+  const p = harness.writeStreamingEvents({
+    delay: 6,
+    count: 10,
+    logGroupName: 'test-group',
+    logStreamName: 'test-stream',
+    allocate: () => harness.makeLogEvent()
+  })
 
-    await harness.sleep(20)
-    const stream2 = await harness.getLogStream(
-      'test-group', 'test-stream'
-    )
+  await harness.sleep(20)
+  const stream2 = await harness.getLogStream(
+    'test-group', 'test-stream'
+  )
 
-    await harness.sleep(20)
-    const stream3 = await harness.getLogStream(
-      'test-group', 'test-stream'
-    )
+  await harness.sleep(20)
+  const stream3 = await harness.getLogStream(
+    'test-group', 'test-stream'
+  )
 
-    const events = await p
-    t.equal(events.length, 10)
-    t.ok(stream1 && stream2 && stream3)
+  const events = await p
+  t.equal(events.length, 10)
+  t.ok(stream1 && stream2 && stream3)
+  assert(stream1 && stream2 && stream3)
 
-    // t.equal(
-    //   events[9].ingestionTime, streams[0].stream.lastIngestionTime,
-    //   'first stream ingestionTime correct'
-    // )
-    // t.equal(streams[0].stream.firstEventTimestamp, evs[0].timestamp)
-    // t.equal(streams[0].stream.lastEventTimestamp, evs[2].timestamp)
+  const events1 = events.filter((e) => {
+    return e.ingestionTime && e.ingestionTime <= stream2.ts
+  }).reverse()
+  const events2 = events.filter((e) => {
+    return e.ingestionTime && e.ingestionTime <= stream3.ts
+  }).reverse()
 
-    // t.equal(
-    //   events[9].ingestionTime, streams[1].stream.lastIngestionTime,
-    //   'second stream ingestionTime correct'
-    // )
-    // t.equal(streams[1].stream.firstEventTimestamp, evs[0].timestamp)
-    // t.equal(streams[1].stream.lastEventTimestamp, evs[2].timestamp)
-    // t.equal(streams[1].stream.creationTime, streams[0].stream.creationTime)
+  t.equal(stream1.stream.lastIngestionTime, evs[2].ingestionTime)
+  t.equal(stream1.stream.firstEventTimestamp, evs[0].timestamp)
+  t.equal(stream1.stream.lastEventTimestamp, evs[2].timestamp,
+    'Expect stream1 lastEventTimestamp to be default'
+  )
 
-    // t.equal(
-    //   events[9].ingestionTime, streams[2].stream.lastIngestionTime,
-    //   'third stream ingestionTime correct'
-    // )
-    // t.equal(streams[2].stream.firstEventTimestamp, evs[0].timestamp)
-    // t.equal(streams[2].stream.lastEventTimestamp, evs[2].timestamp)
-    // t.equal(streams[2].stream.creationTime, streams[0].stream.creationTime)
-  }
-)
+  t.equal(stream2.stream.lastIngestionTime, events1[0].ingestionTime)
+  t.equal(stream2.stream.firstEventTimestamp, evs[0].timestamp)
+  t.equal(stream2.stream.lastEventTimestamp, evs[2].timestamp,
+    'Expect stream2 lastEventTimestamp to be outdated'
+  )
+
+  t.equal(stream3.stream.lastIngestionTime, events2[0].ingestionTime)
+  t.equal(stream3.stream.firstEventTimestamp, evs[0].timestamp)
+  /**
+   * This assertion might fail because events2[1] / events2[2]
+   * is related to the 30ms ingestionDelay
+   */
+  t.ok(
+    stream3.stream.lastEventTimestamp === events2[1].timestamp ||
+    stream3.stream.lastEventTimestamp === events2[2].timestamp ||
+    // Sometimes events2.length === 7 instead of === 6
+    stream3.stream.lastEventTimestamp ===
+      events2[events2.length - 4].timestamp,
+    'Expect stream3 lastEventTimestamp to be updated'
+  )
+})

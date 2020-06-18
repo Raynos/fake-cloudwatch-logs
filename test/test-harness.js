@@ -23,10 +23,12 @@ const { FakeCloudwatchLogs } = require('../index.js')
  */
 
 class TestHarness {
-  constructor () {
+  /** @param {{ ingestionDelay?: number }} [options] */
+  constructor (options = {}) {
     /** @type {FakeCloudwatchLogs} */
     this.cwServer = new FakeCloudwatchLogs({
       port: 0,
+      ingestionDelay: options.ingestionDelay,
       cachePath: this.getCachePath()
     })
     /** @type {AWS.CloudWatchLogs | null} */

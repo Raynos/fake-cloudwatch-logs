@@ -469,7 +469,7 @@ class FakeCloudwatchLogs {
     if (!stream.lastEventTimestamp) {
       stream.lastEventTimestamp = oldestTs
     } else {
-      if (oldestTs > oldestIngestion + this.ingestionDelay) {
+      if (oldestTs > stream.lastEventTimestamp + this.ingestionDelay) {
         stream.lastEventTimestamp = oldestTs
       }
     }
