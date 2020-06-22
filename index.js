@@ -382,6 +382,12 @@ class FakeCloudwatchLogs {
     groups.push(...newGroups)
 
     this.rawGroups[key] = groups
+    for (const g of newGroups) {
+      const streamKey = `${key}::${g.logGroupName}`
+      if (!this.rawStreams[streamKey]) {
+        this.rawStreams[streamKey] = []
+      }
+    }
   }
 
   /**

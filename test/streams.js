@@ -216,6 +216,18 @@ test('can fetch from two groups', async (harness, t) => {
     `my-log-stream-${harness.gCounter - 1}`)
 })
 
+test('fetch from empty group', async (harness, t) => {
+  populateStreams(harness, '123', 'us-east-1', 'test-group-1', [])
+
+  const cw = harness.getCW()
+  const res1 = await cw.describeLogStreams({
+    logGroupName: 'test-group-1'
+  }).promise()
+
+  t.ok(res1.logStreams)
+  t.deepEqual(res1.logStreams, [])
+})
+
 test('can fetch in descending order', async (harness, t) => {
   const cw = harness.getCW()
 
@@ -445,5 +457,6 @@ function populateStreams (
   server.populateGroups(
     profile, region, [harness.makeLogGroup(logGroupName)]
   )
+  if (streams.length === 0) return
   server.populateStreams(profile, region, logGroupName, streams)
 }
