@@ -421,6 +421,7 @@ class FakeCloudwatchLogs {
       assert(typeof ev.ingestionTime === 'number', 'Must have ingestionTime')
     }
 
+    const now = Date.now()
     const key = `${profile}::${region}::${groupName}::${streamName}`
 
     const events = this.rawEvents[key] || []
@@ -477,8 +478,17 @@ class FakeCloudwatchLogs {
     if (!stream.lastEventTimestamp) {
       stream.lastEventTimestamp = oldestTs
     } else {
-      if (oldestTs > stream.lastEventTimestamp + this.ingestionDelay) {
-        stream.lastEventTimestamp = oldestTs
+      const timestamps = events.map(e => e.timestamp || 0)
+      timestamps.sort()
+      timestamps.reverse()
+      for (const timestamp of timestamps) {
+        if (
+          timestamp < now - this.ingestionDelay &&
+          timestamp < stream.lastIngestionTime - this.ingestionDelay
+        ) {
+          stream.lastEventTimestamp = timestamp
+          break
+        }
       }
     }
   }
