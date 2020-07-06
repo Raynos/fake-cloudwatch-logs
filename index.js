@@ -484,7 +484,8 @@ class FakeCloudwatchLogs {
       for (const timestamp of timestamps) {
         if (
           timestamp < now - this.ingestionDelay &&
-          timestamp < stream.lastIngestionTime - this.ingestionDelay
+          timestamp < stream.lastIngestionTime - this.ingestionDelay &&
+          timestamp > stream.lastEventTimestamp
         ) {
           stream.lastEventTimestamp = timestamp
           break
