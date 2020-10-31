@@ -6,7 +6,7 @@ const AWS = require('aws-sdk')
 const tape = require('@pre-bundled/tape')
 const rimraf = require('@pre-bundled/rimraf')
 const util = require('util')
-const tapeCluster = require('tape-cluster')
+const tapeCluster = require('tape-harness')
 const path = require('path')
 const os = require('os')
 

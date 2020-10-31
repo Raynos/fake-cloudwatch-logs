@@ -7,7 +7,7 @@ export = tape;
  * cb(t) fires with the new test object t once all preceeding tests have finished.
  * Tests execute serially.
  */
-declare function tape(name: string | tape.TestOptions, cb: tape.TestCase): void;
+declare function tape(name: string | tape.TestOptions, cb?: tape.TestCase): void;
 declare function tape(name: string, opts: tape.TestOptions, cb: tape.TestCase): void;
 declare function tape(cb: tape.TestCase): void;
 
@@ -45,7 +45,7 @@ declare namespace tape {
     /**
      * Like test(name?, opts?, cb) except if you use .only this is the only test case that will run for the entire process, all other test cases using tape will be ignored.
      */
-    function only(name: string | TestOptions, cb: TestCase): void;
+    function only(name: string | TestOptions, cb?: TestCase): void;
     function only(name: string, opts: TestOptions, cb: TestCase): void;
     function only(cb: TestCase): void;
 
